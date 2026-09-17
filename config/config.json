@@ -1,0 +1,8 @@
+{
+  "baseUrl": "https://www.google.com",
+  "browser": "chromium",
+  "headless": false,
+  "actionTimeoutMs": 10000,
+  "navigationTimeoutMs": 30000,
+  "retries": 1
+}

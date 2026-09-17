@@ -1,0 +1,540 @@
+====================================================================
+  PlaywrightWebFramework - Explained Simply (for a complete beginner)
+====================================================================
+
+------------------------------------------------------------
+1. WHAT IS THIS PROJECT, IN ONE SENTENCE?
+------------------------------------------------------------
+It is a TypeScript project that automatically opens a Chrome
+browser, goes to google.com, does some checks (like "does the
+title say Google?"), and then tells you PASS or FAIL for each
+check - and saves an HTML report you can open and look at.
+
+This is the SAME idea as WebAutomationFramework (the Java/Selenium
+project), just built with different tools: TypeScript instead of
+Java, Playwright instead of Selenium, Cucumber.js instead of
+Cucumber-Java. Both projects test the same thing (Google Search)
+in the same two styles, so you can compare them side by side.
+
+Think of it like a robot that:
+  1. Opens the browser for you
+  2. Clicks/types things for you
+  3. Checks if the result is correct
+  4. Writes a report of what happened
+  5. Takes a screenshot/video/trace if something went wrong
+
+
+------------------------------------------------------------
+2. WHY DOES THIS PROJECT EXIST, SEPARATE FROM WebAutomationFramework?
+------------------------------------------------------------
+WHY: To compare two different automation tools/approaches on the
+SAME test coverage, so you can judge things like speed, ease of
+writing tests, and quality of reports side-by-side, without one
+project's code affecting the other.
+
+WHY A COMPLETELY SEPARATE PROJECT (not just a folder inside the
+Java one): Java+Maven and TypeScript+npm are two totally different
+toolchains (different build tools, different dependency systems,
+different ways of running tests). Mixing them in one project folder
+would only cause confusion (which command do I run? which
+package/dependency file is real?) with zero actual benefit, since
+they don't share any code anyway.
+
+
+------------------------------------------------------------
+3. THE BIG PICTURE - HOW THE PIECES FIT TOGETHER
+------------------------------------------------------------
+
+Just like the Java project, there are TWO ways to write a test here:
+
+  A) Plain Playwright test -> TypeScript code only (tests/googleSearch.spec.ts)
+  B) Cucumber (BDD) test   -> Plain English sentences (features/GoogleSearch.feature)
+                               + TypeScript code that understands those sentences
+
+Both styles share the SAME Page Object (GoogleSearchPage.ts) and
+the SAME config file. That is the whole point of a "framework" -
+shared plumbing, multiple ways to write the actual test on top of it.
+
+  FLOWCHART - Folder layout and what talks to what
+  --------------------------------------------------
+
+  config/
+   |
+   |-- config.json           -> settings: baseUrl, browser, headless, timeouts, retries
+
+  src/
+   |
+   |-- pages/
+   |     GoogleSearchPage.ts -> knows about ONE web page (Google home page)
+   |                            e.g. "the search box locator", search(), getPageTitle()
+   |                            SHARED by both Style A and Style B
+   |
+   |-- utils/
+   |     configReader.ts     -> reads config.json and returns it as a typed object
+   |
+   |-- steps/
+   |     googleSearch.steps.ts -> Style B: TypeScript code behind the English sentences
+   |
+   |-- support/
+         world.ts             -> Style B: holds the browser/page for one Cucumber scenario
+         hooks.ts              -> Style B: opens browser before each scenario, closes
+                                   it after (and takes a screenshot if it failed)
+
+  tests/
+   |
+   |-- googleSearch.spec.ts  -> Style A: plain Playwright tests (11 tests)
+
+  features/
+   |
+   |-- GoogleSearch.feature  -> Style B: the plain English test scenarios (11 scenarios)
+
+  scripts/
+   |
+   |-- generateCucumberReport.js -> turns Cucumber's raw JSON result into a nice HTML page
+
+  playwright.config.ts   -> master settings for Style A (parallel run? retries? reports?)
+  cucumber.js            -> master settings for Style B (where are the steps? what format?)
+  tsconfig.json          -> tells TypeScript how to compile/check this project
+  package.json           -> lists all the tools this project depends on + the run commands
+
+
+------------------------------------------------------------
+4. HOW ONE TEST ACTUALLY RUNS - STEP BY STEP
+------------------------------------------------------------
+
+-----------------------------------------
+4A. STYLE A: Plain Playwright ("npm test")
+-----------------------------------------
+
+STEP 1 - You type:  npm test
+   This runs the command defined in package.json -> "playwright test"
+
+STEP 2 - Playwright reads playwright.config.ts
+   This tells Playwright:
+     - where the tests are (testDir: './tests')
+     - what browser to use (chromium, from config.json via configReader.ts)
+     - to run tests in parallel (fullyParallel: true)
+     - to retry a failed test (retries, from config.json)
+     - to take a screenshot/video/trace ONLY when a test fails
+     - to generate an HTML report into test-output/playwright-report
+
+STEP 3 - For each test in googleSearch.spec.ts:
+   a. Playwright's own "beforeEach" runs FIRST:
+        -> creates a new GoogleSearchPage object
+        -> calls searchPage.open(baseUrl) to go to the URL
+      (Playwright automatically gives every test its own fresh
+       browser page - you don't need a DriverManager like in Java,
+       because Playwright's test runner does this for you internally)
+   b. The actual test() body runs:
+        -> calls searchPage.search("something") or searchPage.getPageTitle()
+        -> checks the result with expect(...).toBe(...) or .toContain(...)
+   c. If the test FAILS:
+        -> Playwright automatically takes a screenshot, records a
+           video, and saves a "trace" (a full replay of everything
+           that happened) - all built in, no custom code needed
+        -> Playwright automatically retries the test (up to the
+           configured retry count) before marking it as a final failure
+   d. The browser page is automatically closed after the test.
+
+STEP 4 - After all tests finish:
+   -> An HTML report is generated at
+      test-output/playwright-report/index.html
+   -> Screenshots/videos/traces for any failed test are saved under
+      test-output/test-results/<test-name>/
+
+
+-----------------------------------------
+4B. STYLE B: Cucumber BDD ("npm run bdd")
+-----------------------------------------
+
+STEP 1 - You type:  npm run bdd
+   This runs "cucumber-js", which reads cucumber.js for its settings
+   (where to find .feature files, where to find step/support code,
+   what report format to produce).
+
+STEP 2 - Cucumber reads features/GoogleSearch.feature
+   For each Scenario, e.g. "Search for a term on Google":
+     Given the user navigates to the Google home page
+     When the user searches for "Selenium WebDriver"
+     Then the search box should not be empty
+
+STEP 3 - Before running the steps of a scenario, hooks.ts's
+   "Before" function runs:
+     -> launches a real browser (chromium/firefox/webkit, based on
+        config.json)
+     -> opens a new browser context and a new page
+     -> creates a GoogleSearchPage object using that page
+     -> stores all of this on "this" (the CustomWorld object from
+        world.ts) so the step definitions can use it
+
+STEP 4 - Cucumber matches each English sentence to a function in
+   googleSearch.steps.ts (matched by the sentence pattern, using
+   Given/When/Then):
+        "the user navigates to the Google home page"
+              -> calls googleSearchPage.open(baseUrl)
+        "the user searches for {string}"
+              -> calls googleSearchPage.search(searchTerm)
+        "the search box should not be empty"
+              -> checks with expect(value).not.toBe('')
+              -> THIS is where PASS/FAIL is actually decided
+
+STEP 5 - After the scenario finishes, hooks.ts's "After" function runs:
+     -> checks if the scenario FAILED
+     -> IF FAILED: takes a screenshot and attaches it to the
+        Cucumber report (this.attach(...))
+     -> closes the browser context and the browser itself
+
+STEP 6 - After ALL scenarios finish:
+   -> Cucumber writes test-output/cucumber-reports/cucumber-report.json
+   -> You then run "npm run bdd:report", which runs
+      scripts/generateCucumberReport.js, which reads that JSON file
+      and turns it into a nice HTML page:
+      test-output/cucumber-reports/cucumber-report.html
+
+
+  FLOWCHART - One test's life, start to finish (both styles)
+  --------------------------------------------------------------
+
+  Style A: npm test                         Style B: npm run bdd
+       |                                          |
+       v                                          v
+  playwright.config.ts is read              cucumber.js is read
+       |                                          |
+       v                                          v
+  Playwright's own beforeEach:               hooks.ts "Before":
+  -> new page, open GoogleSearchPage         -> launch browser, new page,
+                                                 create GoogleSearchPage
+       |                                          |
+       v                                          v
+  test() body runs                          Each Given/When/Then step runs
+  -> uses GoogleSearchPage                  -> uses googleSearch.steps.ts
+  -> expect(...).toBe(...)                  -> expect(...).toBe(...)
+       |                                          |
+       v                                          v
+  PASS -> continue                          PASS -> continue
+  FAIL -> auto screenshot/video/trace       FAIL -> hooks.ts "After" takes
+          + auto retry (per config)                 screenshot, attaches to report
+       |                                          |
+       v                                          v
+  Browser page auto-closed                  hooks.ts "After" closes
+                                                browser + context
+       |                                          |
+       v                                          v
+  HTML report written to                    JSON report written, then
+  test-output/playwright-report/            "npm run bdd:report" converts
+                                                it to HTML
+
+
+------------------------------------------------------------
+5. WHY TWO STYLES OF TEST (Plain Playwright vs Cucumber)?
+------------------------------------------------------------
+- Plain Playwright (Style A) is faster to write for a developer who
+  is comfortable in TypeScript. Playwright's own tooling (auto-wait,
+  auto-screenshot, trace viewer) is extremely convenient here.
+- Cucumber (Style B) lets you write tests in plain English
+  (Given/When/Then), so non-technical people (business analysts,
+  product owners) can read/help write scenarios without knowing
+  TypeScript. The code behind each sentence (step definitions) is
+  written once and reused across many scenarios.
+
+This mirrors EXACTLY the same reasoning as the Java project - the
+two frameworks were deliberately built to match each other so you
+can compare them fairly.
+
+
+------------------------------------------------------------
+6. KEY BUILDING BLOCKS - WHAT EACH ONE IS FOR, AND WHY IT EXISTS
+------------------------------------------------------------
+This section explains WHY each file is needed - not just what it
+does, but what problem it solves, and what would go wrong without it.
+
+--------------------------------------------------------------
+WHY: config/config.json + src/utils/configReader.ts
+--------------------------------------------------------------
+WHAT: One JSON file holding baseUrl, browser, headless, timeouts,
+and retries. configReader.ts just reads it and hands it back as a
+typed TypeScript object.
+
+WHY WE NEED IT: If the URL or browser type were typed directly into
+test code, switching environments (e.g. staging vs production) or
+running headless on a CI server would mean editing and re-committing
+code. Keeping it in one JSON file means anyone can change it without
+touching TypeScript.
+
+WHY A TYPED READER (not just "require the JSON directly everywhere"):
+Having ONE function (getConfig()) that returns a typed
+FrameworkConfig object means every file that needs settings gets
+autocomplete and compile-time checking - if you typo a property
+name, TypeScript catches it immediately instead of failing silently
+at runtime.
+
+WHAT BREAKS WITHOUT IT: Hardcoded URLs/timeouts scattered across
+many files - changing environments becomes a find-and-replace
+exercise across the whole codebase, easy to miss a spot.
+
+--------------------------------------------------------------
+WHY: src/pages/GoogleSearchPage.ts (Page Object Pattern)
+--------------------------------------------------------------
+WHAT: A class that knows everything about ONE web page: where its
+elements are (locators) and what actions you can do on it
+(search(), getPageTitle(), getSearchBoxValue()).
+
+WHY WE NEED IT: If every test wrote its own locator strings
+directly (e.g. page.locator('textarea[name="q"]')), then the day
+Google changes their HTML, you'd have to fix that locator in every
+single test file that uses it.
+
+WHY IT'S SHARED BETWEEN STYLE A AND STYLE B: Both the plain
+Playwright tests and the Cucumber step definitions import and use
+the exact same GoogleSearchPage class. This is intentional - the
+"how do I interact with this page" logic should only exist ONCE,
+no matter how many different ways you write tests on top of it.
+
+WHAT BREAKS WITHOUT IT: A single HTML change on the real website
+requires editing dozens of test/step files instead of just one page
+object file - the single biggest cause of unmaintainable test
+suites over time.
+
+--------------------------------------------------------------
+WHY: playwright.config.ts
+--------------------------------------------------------------
+WHAT: The master settings file for Style A (plain Playwright
+tests) - where tests live, whether to run in parallel, how many
+retries, what to capture on failure, where reports go.
+
+WHY WE NEED IT: Without a central config, you'd have to pass a long
+list of command-line flags every single time you ran a test, and
+there'd be no consistent policy for retries/screenshots across the
+whole team.
+
+WHY screenshot/trace/video ARE SET TO "only-on-failure" /
+"retain-on-failure" (not "always"): Capturing these for EVERY test,
+including ones that pass, would create huge amounts of disk usage
+for no benefit - you only need the evidence when something actually
+went wrong.
+
+WHAT BREAKS WITHOUT IT: Inconsistent test runs (one person runs
+headless, another doesn't; one person's retries are different from
+another's) and no automatic HTML report at all.
+
+--------------------------------------------------------------
+WHY: cucumber.js
+--------------------------------------------------------------
+WHAT: The master settings file for Style B (Cucumber) - where
+.feature files are, where the step-definition and support (hooks,
+world) code lives, and what report format to output.
+
+WHY WE NEED IT: Cucumber has no idea by default where your
+.feature files or step definitions are - this file tells it exactly
+where to look (paths, require) so running "cucumber-js" with no
+arguments just works.
+
+WHY "requireModule: ['ts-node/register']" SPECIFICALLY: Cucumber.js
+itself only understands JavaScript. Since our step definitions are
+written in TypeScript, we need ts-node to translate (compile) the
+TypeScript files into JavaScript on the fly, at the moment Cucumber
+tries to load them.
+
+WHAT BREAKS WITHOUT IT: Cucumber wouldn't find any scenarios or
+step definitions at all, or would crash trying to load .ts files it
+doesn't understand.
+
+--------------------------------------------------------------
+WHY: src/support/world.ts (Cucumber's "World")
+--------------------------------------------------------------
+WHAT: A small class that Cucumber creates fresh for EVERY scenario,
+used to store that scenario's browser, browser context, page, and
+GoogleSearchPage object.
+
+WHY WE NEED IT: Cucumber step definitions are separate functions
+(Given/When/Then) that don't automatically share data with each
+other. Without a shared "World" object, the "When" step wouldn't
+know which browser page the "Given" step opened. The World object
+is Cucumber's built-in mechanism for sharing state across the steps
+of ONE scenario, safely, without any global variables.
+
+WHY A NEW WORLD PER SCENARIO (not one shared object for the whole
+run): This guarantees that one scenario's browser/state can never
+accidentally leak into another scenario - each scenario starts
+completely fresh, which is essential for scenarios to be reliable
+and independent of run order.
+
+WHAT BREAKS WITHOUT IT: Either steps can't share the browser/page at
+all (every step would need to create its own), or you'd be tempted
+to use global variables, which would break as soon as scenarios run
+in parallel or in a different order.
+
+--------------------------------------------------------------
+WHY: src/support/hooks.ts (Before / After)
+--------------------------------------------------------------
+WHAT: "Before" runs before EVERY scenario (launches the browser,
+opens a page, builds the GoogleSearchPage). "After" runs after
+EVERY scenario (screenshots on failure, then closes everything).
+
+WHY WE NEED IT: Every scenario needs a browser opened before its
+steps can do anything, and needs that browser properly closed
+afterward - otherwise browser processes pile up and eventually
+exhaust your machine's memory. Rather than repeating this
+open/close logic manually in every single scenario, hooks.ts does
+it automatically for ALL of them.
+
+WHY THE SCREENSHOT LOGIC LIVES HERE, AND NOT SOMEWHERE ELSE: This
+is the same lesson learned while building the Java framework's
+Cucumber integration - by the time any "test finished" listener
+outside of Cucumber's own lifecycle gets notified, the browser may
+already be closed. Taking the screenshot INSIDE Cucumber's own
+"After" hook, BEFORE closing the browser, guarantees the browser is
+still open and the screenshot actually captures something useful.
+
+WHAT BREAKS WITHOUT IT: Either no browser ever opens (every step
+would crash immediately), or browsers never close (memory leak that
+gets worse the more scenarios you run), or screenshots-on-failure
+silently fail to capture anything useful.
+
+--------------------------------------------------------------
+WHY: src/steps/googleSearch.steps.ts (step definitions)
+--------------------------------------------------------------
+WHAT: The TypeScript functions that make each English Given/When/
+Then sentence in the .feature file actually DO something (open a
+page, type into a search box, assert a condition).
+
+WHY WE NEED IT: A .feature file is just plain text - Gherkin/
+Cucumber doesn't understand English. This file is the "translation
+layer" connecting a specific English sentence pattern (e.g. "the
+user searches for {string}") to real Playwright actions.
+
+WHY THE STEPS ARE PARAMETERIZED (e.g. {string} instead of writing a
+new step per exact sentence): This lets you write MANY new
+scenarios in the .feature file, using different search terms or
+expected values, without writing any new TypeScript code - as long
+as the sentence PATTERN already exists. This is what makes
+Cucumber scalable instead of needing one hardcoded function per
+exact sentence.
+
+WHAT BREAKS WITHOUT IT: The English sentences in the .feature file
+would just be unrecognized text with no matching code - Cucumber
+would report every step as "undefined" and nothing would run.
+
+--------------------------------------------------------------
+WHY: scripts/generateCucumberReport.js + cucumber-html-reporter
+--------------------------------------------------------------
+WHAT: Cucumber.js only outputs a raw JSON file describing what
+passed/failed. This script feeds that JSON into the
+cucumber-html-reporter library to produce a proper, readable HTML
+report (matching what the Java project's Cucumber setup already
+produces natively).
+
+WHY WE NEED IT: A JSON file is fine for machines but painful for a
+human to read. The HTML report gives a clean, visual pass/fail
+summary you can open in a browser and share with others - the same
+purpose ExtentReports serves on the Java side.
+
+WHAT BREAKS WITHOUT IT: You'd be stuck reading raw JSON or console
+output to figure out what passed/failed in a Cucumber run.
+
+--------------------------------------------------------------
+WHY: tsconfig.json
+--------------------------------------------------------------
+WHAT: Tells the TypeScript compiler how strictly to check your
+code, which JavaScript version to target, and which files/folders
+belong to the project.
+
+WHY WE NEED IT: TypeScript's entire value is catching mistakes
+(wrong types, typos, missing properties) BEFORE you run the code.
+Without a tsconfig.json, tools like ts-node and editors don't know
+which compiler rules to apply, and you lose consistent type
+checking across the project.
+
+WHY "strict": true SPECIFICALLY: This turns on TypeScript's full
+set of safety checks (e.g. you can't accidentally treat "undefined"
+as if it were a valid value). This catches real bugs early, at the
+cost of being a little stricter to write code against - a trade-off
+considered worth it for a test framework that needs to be reliable.
+
+WHAT BREAKS WITHOUT IT: TypeScript files might not compile
+consistently across different tools (Playwright's runner, ts-node
+for Cucumber), and many classes of bugs that "strict" mode would
+have caught slip through instead.
+
+--------------------------------------------------------------
+WHY: package.json (and package-lock.json)
+--------------------------------------------------------------
+WHAT: Lists every tool this project depends on (Playwright,
+Cucumber, TypeScript, ts-node, the HTML reporter) and defines the
+short commands (npm test, npm run bdd, etc.) that actually run
+things.
+
+WHY WE NEED IT: Without it, you'd need to remember (and type out)
+long, exact commands like "npx cucumber-js --require ts-node/
+register --require src/support/**/*.ts ..." every single time.
+package.json's "scripts" section turns that into a short, memorable
+command anyone on the team can run the same way.
+
+WHY package-lock.json MATTERS TOO: It records the EXACT version of
+every dependency (including sub-dependencies) that was installed.
+This means when you run "npm install" on another machine, you get
+byte-for-byte the same set of tool versions - avoiding the classic
+"it works on my machine but not on yours" problem caused by two
+people accidentally using different library versions.
+
+WHAT BREAKS WITHOUT IT: No standard way to install dependencies or
+run tests; every developer would set things up slightly
+differently, and versions could silently drift apart between
+machines.
+
+
+------------------------------------------------------------
+7. WHERE DO I LOOK IF...
+------------------------------------------------------------
+- ...I want to see if my Playwright tests passed?
+     -> test-output/playwright-report/index.html (run "npm run report" to open it)
+
+- ...I want to see if my Cucumber scenarios passed?
+     -> test-output/cucumber-reports/cucumber-report.html
+        (run "npm run bdd:report" first to generate it)
+
+- ...a Playwright test failed and I want to see what happened?
+     -> test-output/test-results/<test-name>/ (screenshot, video, and a
+        "trace" you can open with: npx playwright show-trace <path>)
+
+- ...a Cucumber scenario failed and I want to see what happened?
+     -> open cucumber-report.html - the screenshot is embedded right
+        there in the failed scenario's section
+
+- ...I want to add a new web page to test?
+     1. Create a new Page Object in src/pages/ (copy the style of
+        GoogleSearchPage.ts)
+     2. Either:
+        a) write a plain Playwright test in tests/, or
+        b) add a Scenario to a .feature file + step methods in a
+           *.steps.ts file
+
+- ...I want to change the browser or the target URL?
+     -> config/config.json
+
+- ...I want to see the actual English-language test scenarios?
+     -> features/GoogleSearch.feature
+
+
+------------------------------------------------------------
+8. QUICK RECAP (the one-paragraph version)
+------------------------------------------------------------
+This framework drives a real browser using Playwright, organizes
+page-specific logic into Page Objects (one class per web page,
+shared everywhere), and lets you write tests either as plain
+TypeScript (Playwright Test) or as plain-English Gherkin scenarios
+(Cucumber) that map to TypeScript "step definition" functions.
+Playwright's own test runner handles parallelism, retries, and
+failure screenshots/videos/traces automatically for plain tests;
+for Cucumber scenarios, a "World" object shares browser state across
+a scenario's steps, and "Before"/"After" hooks open the browser,
+close it, and capture a failure screenshot at exactly the right
+moment. Configuration (browser, URL, timeouts, retry count) lives
+in one JSON file so nothing is hardcoded. This project deliberately
+mirrors WebAutomationFramework (the Java/Selenium version) scenario-
+for-scenario, so the two can be compared side by side as two
+different implementations of the exact same test coverage.
+
+====================================================================
+                              END OF FILE
+====================================================================

@@ -1,0 +1,26 @@
+node_modules/
+test-output/
+playwright-report/
+playwright/.cache/
+.idea/
+*.iml
+
+# macOS
+.DS_Store
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+
+# Playwright test artifacts
+test-results/
+
+# Eclipse
+.classpath
+.project
+.settings/
+bin/
