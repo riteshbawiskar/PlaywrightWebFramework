@@ -7,6 +7,8 @@ There are **two testing styles**, side by side, mirroring the Java project exact
 - Plain Playwright tests (`tests/*.spec.ts`)
 - Cucumber BDD scenarios in Gherkin (`features/*.feature` + `src/steps/*.steps.ts`)
 
+For a plain-English, beginner-friendly walkthrough of how everything fits together (with flowcharts and a "why" explanation for every component), see [`PlaywrightWebFramework_Explained.txt`](./PlaywrightWebFramework_Explained.txt).
+
 ## Features
 
 - **Page Object Model** — `src/pages/GoogleSearchPage.ts`
