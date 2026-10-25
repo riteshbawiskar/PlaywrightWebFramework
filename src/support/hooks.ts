@@ -1,7 +1,6 @@
 import { Before, After, Status } from '@cucumber/cucumber';
 import { chromium, firefox, webkit } from '@playwright/test';
 import { CustomWorld } from './world';
-import { GoogleSearchPage } from '../pages/GoogleSearchPage';
 import { getConfig } from '../utils/configReader';
 
 const browserLaunchers = { chromium, firefox, webkit };
@@ -14,7 +13,7 @@ Before(async function (this: CustomWorld) {
   this.page = await this.context.newPage();
   this.page.setDefaultTimeout(config.actionTimeoutMs);
   this.page.setDefaultNavigationTimeout(config.navigationTimeoutMs);
-  this.googleSearchPage = new GoogleSearchPage(this.page);
+  this.initPages();
 });
 
 After(async function (this: CustomWorld, scenario) {

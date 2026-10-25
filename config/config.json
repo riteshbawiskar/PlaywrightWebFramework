@@ -1,5 +1,5 @@
 {
-  "baseUrl": "https://www.google.com",
+  "baseUrl": "https://rahulshettyacademy.com/client/#/auth/login",
   "browser": "chromium",
   "headless": false,
   "actionTimeoutMs": 10000,
