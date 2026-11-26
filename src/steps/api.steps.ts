@@ -64,6 +64,36 @@ When('the client sends malformed JSON to the login endpoint', async function (th
   this.apiResponse = await (await api(this)).postRawLogin('{"userEmail":');
 });
 
+When('the client logs in with valid credentials and an extra field', async function (this: CustomWorld) {
+  const { email, password } = getCredentials();
+  const body = { userEmail: email, userPassword: password, extra: 1 };
+  this.apiResponse = await (await api(this)).postRawLogin(JSON.stringify(body));
+});
+
+When('the client logs in with valid email and the password in uppercase', async function (this: CustomWorld) {
+  const { email, password } = getCredentials();
+  this.apiResponse = await (await api(this)).login(email, password.toUpperCase());
+});
+
+When('the client sends a GET request to the login endpoint', async function (this: CustomWorld) {
+  this.apiResponse = await (await api(this)).get('/auth/login');
+});
+
+When('the client sends a GET request to the products endpoint', async function (this: CustomWorld) {
+  this.apiResponse = await (await api(this)).get('/product/get-all-products');
+});
+
+When('the client sends a request to an unknown endpoint', async function (this: CustomWorld) {
+  this.apiResponse = await (await api(this)).get('/this-endpoint-does-not-exist');
+});
+
+When('the client logs in and requests the products with an extra body field', async function (this: CustomWorld) {
+  const client = await api(this);
+  const { email, password } = getCredentials();
+  this.apiToken = await client.loginAndGetToken(email, password);
+  this.apiResponse = await client.getProducts(this.apiToken, { unknown: 1 });
+});
+
 // --- Then: check the last response ---
 
 Then('the response status should be {int}', async function (this: CustomWorld, status: number) {
@@ -107,5 +137,40 @@ Then('every product should have a name and a positive price', async function (th
   for (const product of body.data) {
     expect(product.productName.trim().length, `product ${product._id} needs a name`).toBeGreaterThan(0);
     expect(product.productPrice, `product ${product._id} needs a positive price`).toBeGreaterThan(0);
+  }
+});
+
+Then('the response token should have three parts', async function (this: CustomWorld) {
+  const body = (await this.apiResponse!.json()) as LoginResponse;
+  expect(body.token.split('.'), 'a JWT has header, payload, and signature').toHaveLength(3);
+});
+
+Then('the response user id should be a 24-character hex id', async function (this: CustomWorld) {
+  const body = (await this.apiResponse!.json()) as LoginResponse;
+  expect(body.userId).toMatch(/^[a-f0-9]{24}$/);
+});
+
+Then('the response should be JSON', async function (this: CustomWorld) {
+  expect(this.apiResponse!.headers()['content-type']).toContain('application/json');
+});
+
+Then('every product should have a unique id', async function (this: CustomWorld) {
+  const body = (await this.apiResponse!.json()) as ProductsResponse;
+  const ids = body.data.map((p) => p._id);
+  expect(new Set(ids).size, 'duplicate product ids found').toBe(ids.length);
+});
+
+Then('every product price should be a whole number', async function (this: CustomWorld) {
+  const body = (await this.apiResponse!.json()) as ProductsResponse;
+  for (const product of body.data) {
+    expect(Number.isInteger(product.productPrice), `product ${product._id} price ${product.productPrice}`).toBe(true);
+  }
+});
+
+Then('every product should have a category and an image URL', async function (this: CustomWorld) {
+  const body = (await this.apiResponse!.json()) as ProductsResponse;
+  for (const product of body.data) {
+    expect(product.productCategory.trim().length, `product ${product._id} needs a category`).toBeGreaterThan(0);
+    expect(product.productImage, `product ${product._id} needs an image URL`).toMatch(/^https?:\/\//);
   }
 });

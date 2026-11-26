@@ -26,8 +26,8 @@ const BASE_BRANCH = 'main';
 
 // Test suites to report. `step` must match the workflow step name in ci.yml exactly.
 // `key` selects the counts from the artifact; `parse` reads them from the logs as a fallback.
+// The project runs Cucumber only, so Cucumber is the only suite reported.
 const SUITES = [
-  { key: 'playwright', label: 'Playwright (UI + API)', step: 'Run Playwright tests (UI and API)', parse: parsePlaywright },
   { key: 'cucumber', label: 'Cucumber (BDD)', step: 'Run Cucumber BDD scenarios', parse: parseCucumber },
 ];
 

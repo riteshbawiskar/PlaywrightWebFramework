@@ -10,6 +10,8 @@ export interface PayloadCase {
 export const invalidLoginPayloads: PayloadCase[] = [
   { name: 'empty email and password', body: { userEmail: '', userPassword: '' } },
   { name: 'password missing', body: { userEmail: 'user@example.com' } },
+  { name: 'email missing', body: { userPassword: 'x' } },
+  { name: 'password empty', body: { userEmail: 'invalid.user@example.com', userPassword: '' } },
   { name: 'empty body', body: {} },
   { name: 'email sent as a number', body: { userEmail: 12345, userPassword: 'x' } },
   { name: 'SQL-style text in email', body: { userEmail: "a' OR 1=1 --", userPassword: 'x' } },

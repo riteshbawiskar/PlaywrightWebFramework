@@ -3,11 +3,7 @@
   "version": "1.0.0",
   "description": "Playwright + TypeScript web UI automation framework",
   "scripts": {
-    "test": "playwright test",
-    "test:headed": "playwright test --headed",
-    "test:api": "playwright test tests/api",
-    "flaky": "node scripts/flakiness-report.js",
-    "report": "playwright show-report",
+    "test": "cucumber-js",
     "bdd": "cucumber-js",
     "bdd:report": "node scripts/generateCucumberReport.js"
   },

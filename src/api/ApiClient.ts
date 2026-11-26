@@ -60,14 +60,20 @@ export class ApiClient {
     });
   }
 
-  async getProducts(token?: string): Promise<APIResponse> {
+  // The products endpoint takes a POST. The body is empty unless a test passes one.
+  async getProducts(token?: string, body: Record<string, unknown> = {}): Promise<APIResponse> {
     const headers: Record<string, string> = {};
     if (token) {
       headers.Authorization = token;
     }
     return this.request.post(`${this.baseUrl}/product/get-all-products`, {
       headers,
-      data: {},
+      data: body,
     });
+  }
+
+  // GET on an API path, for checking routes that should not exist.
+  async get(path: string): Promise<APIResponse> {
+    return this.request.get(`${this.baseUrl}${path}`);
   }
 }
