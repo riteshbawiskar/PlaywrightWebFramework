@@ -176,10 +176,16 @@ function sectionFor(run) {
   if (!run) {
     return [START, '### CI test results', '', `No CI run for commit \`${commit}\` yet. Last checked: ${stamp}.`, END].join('\n');
   }
-  if (!inCi && run.status !== 'completed') {
+  // The run is finished when the test job is done. In CI the report job runs inside
+  // the same run, so the run's own status is not final yet.
+  const jobsNow = gh('run', 'view', String(run.databaseId), '--json', 'jobs').jobs || [];
+  const testNow = jobsNow.find((j) => j.name === 'test');
+  const finished = inCi ? Boolean(testNow && testNow.status === 'completed') : run.status === 'completed';
+  if (!finished) {
+    const state = inCi && testNow ? testNow.status : run.status;
     return [
       START, '### CI test results', '',
-      `Run [#${run.databaseId}](${run.url}) is **${run.status}** for commit \`${commit}\`. Last checked: ${stamp}.`,
+      `**ci-run** [#${run.databaseId}](${run.url}) is **${state}** for commit \`${commit}\`. Last updated: ${stamp}.`,
       END,
     ].join('\n');
   }
@@ -192,7 +198,7 @@ function sectionFor(run) {
     START,
     '### CI test results',
     '',
-    `Run [#${run.databaseId}](${run.url}) on commit \`${run.headSha.slice(0, 7)}\`. Overall: ${verdict}. Checked: ${stamp}.`,
+    `**ci-run** [#${run.databaseId}](${run.url}) on commit \`${run.headSha.slice(0, 7)}\`. Overall: ${verdict}. Last updated: ${stamp}.`,
     '',
     '#### Suites',
     '',

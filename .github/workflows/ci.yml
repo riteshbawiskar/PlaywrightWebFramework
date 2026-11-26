@@ -1,4 +1,4 @@
-name: UI and API Automation
+name: ci-run
 
 on:
   push:
@@ -13,7 +13,30 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Runs first on every pull request and posts a link to this run in the PR
+  # description, so the link is visible while the tests are still going.
+  start:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Post the in-progress link to the PR description
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_ID: ${{ github.run_id }}
+        run: node scripts/pr-ci-status.js ${{ github.event.pull_request.number }}
+
   test:
+    needs: start
+    # Tests run on every push, and on pull requests even if posting the link failed.
+    if: always() && (github.event_name == 'push' || needs.start.result != 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
