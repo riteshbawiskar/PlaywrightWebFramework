@@ -76,6 +76,29 @@ Method note: the averages are per test case. Keep the raw per-test timings from 
 
 The current suite (78 scenarios) passed in full in CI on PR #4 and PR #5.
 
+## Execution timings: one full run
+
+One headless run of the full suite (`npm run bdd`), with the time for each scenario taken from the Cucumber report. These are measured execution times, not authoring times.
+
+| Measure | Value |
+|---|---|
+| Scenarios | 78, all passed (403 steps) |
+| Wall-clock run time | 1m 22.8s |
+| Sum of scenario times | 82.7s |
+
+Per feature (times are scenario execution time):
+
+| Type | Feature | Scenarios | Total | Average | Slowest |
+|---|---|---|---|---|---|
+| API | Products API | 36 | 8.7s | 0.2s | 0.8s |
+| UI | Login | 8 | 4.6s | 0.6s | 1.2s |
+| UI | Products | 13 | 15.4s | 1.2s | 1.9s |
+| UI | Cart | 11 | 28.6s | 2.6s | 4.8s |
+| UI | Checkout | 7 | 21.1s | 3.0s | 3.7s |
+| UI | Orders | 3 | 4.3s | 1.4s | 3.1s |
+
+The slowest scenarios are the cart and checkout flows. Each UI scenario starts a browser, so UI scenarios take seconds where API scenarios take fractions of a second.
+
 ## Known defect: malformed JSON returns 500
 
 Sending a malformed JSON body to the login endpoint returns HTTP **500** instead of 400. The scenario is tagged `@known-defect` in [features/api.feature](../../../features/api.feature), so normal runs skip it and stay green. To see the failure:
