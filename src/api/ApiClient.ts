@@ -1,0 +1,65 @@
+import { APIRequestContext, APIResponse, expect } from '@playwright/test';
+import { getConfig } from '../utils/configReader';
+
+export interface LoginResponse {
+  token: string;
+  userId: string;
+  message: string;
+}
+
+export interface Product {
+  _id: string;
+  productName: string;
+  productCategory: string;
+  productSubCategory: string;
+  productPrice: number;
+  productDescription: string;
+  productImage: string;
+  productRating: string;
+  productTotalOrders: string;
+  productStatus: boolean;
+  productFor: string;
+  productAddedBy: string;
+  __v: number;
+}
+
+export interface ProductsResponse {
+  data: Product[];
+  count: number;
+  message: string;
+}
+
+// Thin wrapper around Playwright's APIRequestContext. Tests call these methods
+// instead of building URLs and headers by hand, so an endpoint change is one edit.
+export class ApiClient {
+  private readonly baseUrl = getConfig().apiBaseUrl;
+
+  constructor(private readonly request: APIRequestContext) {}
+
+  async login(email: string, password: string): Promise<APIResponse> {
+    return this.request.post(`${this.baseUrl}/auth/login`, {
+      data: { userEmail: email, userPassword: password },
+    });
+  }
+
+  // Logs in and returns the token. Fails here, with the status in the message, if login
+  // does not succeed, instead of letting a later call fail with a misleading 401.
+  async loginAndGetToken(email: string, password: string): Promise<string> {
+    const response = await this.login(email, password);
+    expect(response.status(), 'login should return 200').toBe(200);
+    const body = (await response.json()) as LoginResponse;
+    expect(body.token, 'login response should include a token').toBeTruthy();
+    return body.token;
+  }
+
+  async getProducts(token?: string): Promise<APIResponse> {
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers.Authorization = token;
+    }
+    return this.request.post(`${this.baseUrl}/product/get-all-products`, {
+      headers,
+      data: {},
+    });
+  }
+}

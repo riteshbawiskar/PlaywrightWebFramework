@@ -15,11 +15,13 @@ export class LoginPage extends BasePage {
     await this.page.locator(this.loginButton).click();
   }
 
+  // isVisible() does not wait, and the Angular form can render after goto returns.
+  // waitFor() waits up to the action timeout, then we report the result as a boolean.
   async isEmailFieldVisible(): Promise<boolean> {
-    return this.page.locator(this.emailInput).isVisible();
+    return this.page.locator(this.emailInput).waitFor({ state: 'visible' }).then(() => true, () => false);
   }
 
   async isPasswordFieldVisible(): Promise<boolean> {
-    return this.page.locator(this.passwordInput).isVisible();
+    return this.page.locator(this.passwordInput).waitFor({ state: 'visible' }).then(() => true, () => false);
   }
 }

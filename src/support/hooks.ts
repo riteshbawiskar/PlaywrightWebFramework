@@ -17,10 +17,15 @@ Before(async function (this: CustomWorld) {
 });
 
 After(async function (this: CustomWorld, scenario) {
-  if (scenario.result?.status === Status.FAILED) {
-    const screenshot = await this.page.screenshot();
-    this.attach(screenshot, 'image/png');
+  try {
+    // this.page is undefined if Before failed, so check it first.
+    if (scenario.result?.status === Status.FAILED && this.page) {
+      const screenshot = await this.page.screenshot();
+      await this.attach(screenshot, 'image/png');
+    }
+  } finally {
+    // Always close, even if the screenshot failed, so browsers are not leaked.
+    await this.context?.close();
+    await this.browser?.close();
   }
-  await this.context?.close();
-  await this.browser?.close();
 });

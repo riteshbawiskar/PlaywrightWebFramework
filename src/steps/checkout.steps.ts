@@ -1,12 +1,10 @@
 import { Given, When, Then } from '@cucumber/cucumber';
 import { expect } from '@playwright/test';
 import { CustomWorld } from '../support/world';
+import { addProductAndOpenCheckout } from '../flows/shoppingFlows';
 
 Given('the user is on the checkout page with {string} in the cart', async function (this: CustomWorld, productName: string) {
-  await this.dashboardPage.addProductToCart(productName);
-  await this.dashboardPage.openCart();
-  await this.cartPage.proceedToCheckout();
-  expect(await this.checkoutPage.isLoaded(), 'Checkout page did not load').toBe(true);
+  await addProductAndOpenCheckout(this.dashboardPage, this.cartPage, this.checkoutPage, productName);
 });
 
 When('the user types {string} in the country field', async function (this: CustomWorld, text: string) {

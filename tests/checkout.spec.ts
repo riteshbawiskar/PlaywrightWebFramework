@@ -1,22 +1,21 @@
 import { test, expect } from '../src/fixtures/pageFixtures';
+import { checkout, messages, products } from '../src/data/testData';
+import { addProductAndOpenCheckout } from '../src/flows/shoppingFlows';
 
 test.describe('Checkout', () => {
   test.beforeEach(async ({ loggedInDashboard, cartPage, checkoutPage }) => {
-    await loggedInDashboard.addProductToCart('ZARA COAT 3');
-    await loggedInDashboard.openCart();
-    await cartPage.proceedToCheckout();
-    expect(await checkoutPage.isLoaded()).toBe(true);
+    await addProductAndOpenCheckout(loggedInDashboard, cartPage, checkoutPage, products.zaraCoat);
   });
 
   test('Country field suggests matching countries', async ({ checkoutPage }) => {
-    await checkoutPage.typeCountry('ind');
-    expect(await checkoutPage.getCountrySuggestions()).toContain('India');
+    await checkoutPage.typeCountry(checkout.countryQuery);
+    expect(await checkoutPage.getCountrySuggestions()).toContain(checkout.country);
   });
 
   test('User places an order', async ({ checkoutPage }) => {
-    await checkoutPage.selectCountry('India');
+    await checkoutPage.selectCountry(checkout.country);
     await checkoutPage.placeOrder();
     expect((await checkoutPage.getConfirmationMessage()).toLowerCase())
-      .toContain('thankyou for the order.');
+      .toContain(messages.orderConfirmation.toLowerCase());
   });
 });

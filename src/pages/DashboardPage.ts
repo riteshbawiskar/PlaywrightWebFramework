@@ -1,3 +1,4 @@
+import { expect } from '@playwright/test';
 import { BasePage } from './BasePage';
 
 export class DashboardPage extends BasePage {
@@ -5,14 +6,11 @@ export class DashboardPage extends BasePage {
   private readonly productNames = '.card-body b';
   private readonly cartButton = 'button[routerlink*="cart"]';
 
+  // Fails with a clear message (which element, which timeout) instead of returning false.
   async isLoaded(): Promise<boolean> {
     await this.page.waitForURL(/dashboard/);
-    try {
-      await this.page.locator(this.productNames).first().waitFor({ state: 'visible' });
-      return true;
-    } catch {
-      return false;
-    }
+    await expect(this.page.locator(this.productNames).first(), 'dashboard product list should be visible').toBeVisible();
+    return true;
   }
 
   async getProductNames(): Promise<string[]> {
@@ -22,10 +20,16 @@ export class DashboardPage extends BasePage {
   }
 
   async addProductToCart(productName: string): Promise<void> {
-    const card = this.page.locator(this.productCards).filter({ hasText: productName }).first();
+    // Match the exact product name, so "ZARA COAT 3" never matches a longer product that contains it.
+    const card = this.page
+      .locator(this.productCards)
+      .filter({ has: this.page.getByText(productName, { exact: true }) })
+      .first();
     await card.waitFor({ state: 'visible' });
-    // The "Add To Cart" button is the last button inside the product card.
-    await card.locator('button').last().click();
+    // Not exact: the accessible name includes extra text (icon label) around "Add To Cart".
+    await card.getByRole('button', { name: 'Add To Cart' }).click();
+    // Confirm the add actually happened, so a test cannot pass on items left in the cart by an earlier run.
+    await this.waitForToast('Product Added To Cart');
   }
 
   async openCart(): Promise<void> {

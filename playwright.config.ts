@@ -6,6 +6,11 @@ const config = getConfig();
 export default defineConfig({
   testDir: './tests',
   fullyParallel: true,
+  // All UI tests log in as the same user, and the cart is stored on the server.
+  // Running them in parallel made cart and checkout tests see each other's items
+  // (flakiness baseline: 13 failures in 90 runs). One worker removes that race.
+  // Trade-off: slower runs. Revisit once each test gets its own user or cart.
+  workers: 1,
   retries: config.retries,
   reporter: [
     ['html', { outputFolder: 'test-output/playwright-report', open: 'never' }],
