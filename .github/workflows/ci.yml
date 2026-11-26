@@ -57,3 +57,25 @@ jobs:
           name: test-reports
           path: test-output/
           retention-days: 14
+
+  # Runs after the tests on every pull request, pass or fail, and refreshes the
+  # CI results table in the PR description. It needs only read access to Actions
+  # and write access to the pull request, granted to this job alone.
+  report:
+    needs: test
+    if: always() && github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update CI results in the PR description
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_ID: ${{ github.run_id }}
+        run: node scripts/pr-ci-status.js ${{ github.event.pull_request.number }}

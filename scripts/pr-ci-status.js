@@ -48,7 +48,11 @@ const prRuns = gh('run', 'list', '--branch', pr.headRefName, '--json', runFields
 
 // Prefer the pull_request run for the exact head commit. Fall back to any run for that commit.
 const forHead = prRuns.filter((r) => r.headSha === pr.headRefOid);
-const run = forHead.find((r) => r.event === 'pull_request') || forHead[0];
+// In CI, the workflow passes its own run id, so the report always describes the run that started it.
+const inCi = Boolean(process.env.RUN_ID);
+const run = inCi
+  ? gh('run', 'view', process.env.RUN_ID, '--json', 'databaseId,status,conclusion,headSha,url,event')
+  : forHead.find((r) => r.event === 'pull_request') || forHead[0];
 
 // Baseline: the latest completed run on the base branch, which is the code this PR builds on.
 const baseRuns = gh('run', 'list', '--branch', BASE_BRANCH, '--json', runFields, '--limit', '20');
@@ -131,7 +135,12 @@ function readRun(runInfo) {
   );
   totals.total = totals.passed + totals.failed + totals.skipped;
 
-  return { info: runInfo, suites, totals };
+  // The overall conclusion comes from the "test" job. In CI the workflow run is still
+  // in progress while this report job runs, so the run's own conclusion is not final yet.
+  const testJob = (jobsData.jobs || []).find((j) => j.name === 'test');
+  const conclusion = testJob && testJob.conclusion ? testJob.conclusion : runInfo.conclusion;
+
+  return { info: { ...runInfo, conclusion }, suites, totals };
 }
 
 function pct(part, total) {
@@ -167,7 +176,7 @@ function sectionFor(run) {
   if (!run) {
     return [START, '### CI test results', '', `No CI run for commit \`${commit}\` yet. Last checked: ${stamp}.`, END].join('\n');
   }
-  if (run.status !== 'completed') {
+  if (!inCi && run.status !== 'completed') {
     return [
       START, '### CI test results', '',
       `Run [#${run.databaseId}](${run.url}) is **${run.status}** for commit \`${commit}\`. Last checked: ${stamp}.`,
@@ -177,7 +186,7 @@ function sectionFor(run) {
 
   const current = readRun(run);
   const base = baseRun ? readRun(baseRun) : null;
-  const verdict = run.conclusion === 'success' ? '**PASS**' : `**${String(run.conclusion).toUpperCase()}**`;
+  const verdict = current.info.conclusion === 'success' ? '**PASS**' : `**${String(current.info.conclusion).toUpperCase()}**`;
 
   return [
     START,
