@@ -3,11 +3,17 @@
 // against the latest completed run on main. The section sits between two marker
 // lines and is replaced on every run, so the description always shows the current result.
 //
+// Counts come from the test-reports artifact (playwright-results.json and
+// cucumber-report.json). When a run has no report files, the counts are read from its
+// logs instead, which works for completed runs. Durations come from the step timings.
+//
 // Requires the GitHub CLI (gh), logged in to the account that owns the repo.
 //
 // Usage:
 //   node scripts/pr-ci-status.js <pr-number>             update the PR description
 //   node scripts/pr-ci-status.js <pr-number> --dry-run   print the section, change nothing
+//
+// In CI, set RUN_ID to the workflow run that is reporting (the workflow does this).
 
 const { execFileSync } = require('child_process');
 const fs = require('fs');
@@ -19,9 +25,10 @@ const END = '<!-- ci-status:end -->';
 const BASE_BRANCH = 'main';
 
 // Test suites to report. `step` must match the workflow step name in ci.yml exactly.
+// `key` selects the counts from the artifact; `parse` reads them from the logs as a fallback.
 const SUITES = [
-  { label: 'Playwright (UI + API)', step: 'Run Playwright tests (UI and API)', parse: parsePlaywright },
-  { label: 'Cucumber (BDD)', step: 'Run Cucumber BDD scenarios', parse: parseCucumber },
+  { key: 'playwright', label: 'Playwright (UI + API)', step: 'Run Playwright tests (UI and API)', parse: parsePlaywright },
+  { key: 'cucumber', label: 'Cucumber (BDD)', step: 'Run Cucumber BDD scenarios', parse: parseCucumber },
 ];
 
 const args = process.argv.slice(2);
@@ -61,6 +68,68 @@ const baseRun = baseRuns.find((r) => r.status === 'completed' && r.headSha !== p
 const stamp = new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC';
 const commit = pr.headRefOid.slice(0, 7);
 
+// ---- Counts from the test-reports artifact -------------------------------------------
+
+function findFile(dir, name) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      const hit = findFile(full, name);
+      if (hit) return hit;
+    } else if (entry.name === name) {
+      return full;
+    }
+  }
+  return null;
+}
+
+// Playwright JSON: stats.expected counts passed tests (including expected failures
+// from test.fail()). Flaky tests passed on retry, so they are counted as passed too.
+function playwrightCounts(report) {
+  const s = report.stats || {};
+  return { passed: (s.expected || 0) + (s.flaky || 0), failed: s.unexpected || 0, skipped: s.skipped || 0 };
+}
+
+// Cucumber JSON: a scenario fails if any step failed, is skipped if every step was skipped,
+// and passes otherwise.
+function cucumberCounts(features) {
+  const c = { passed: 0, failed: 0, skipped: 0 };
+  for (const feature of features) {
+    for (const el of feature.elements || []) {
+      if (el.type && el.type !== 'scenario') continue;
+      const statuses = (el.steps || []).map((step) => (step.result || {}).status);
+      if (statuses.includes('failed')) c.failed++;
+      else if (statuses.length > 0 && statuses.every((s) => s === 'skipped')) c.skipped++;
+      else c.passed++;
+    }
+  }
+  return c;
+}
+
+// Downloads the test-reports artifact of a run and returns the counts it contains.
+// Returns nulls when the artifact or its report files are missing.
+function artifactCounts(runId) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), `ci-artifacts-${runId}-`));
+  try {
+    execFileSync('gh', ['run', 'download', String(runId), '--name', 'test-reports', '--dir', dir], { stdio: 'pipe' });
+  } catch {
+    fs.rmSync(dir, { recursive: true, force: true });
+    return { playwright: null, cucumber: null };
+  }
+  try {
+    const pwFile = findFile(dir, 'playwright-results.json');
+    const cuFile = findFile(dir, 'cucumber-report.json');
+    return {
+      playwright: pwFile ? playwrightCounts(JSON.parse(fs.readFileSync(pwFile, 'utf8'))) : null,
+      cucumber: cuFile ? cucumberCounts(JSON.parse(fs.readFileSync(cuFile, 'utf8'))) : null,
+    };
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+// ---- Counts from the logs (fallback for runs without report files) --------------------
+
 // Strips ANSI colour codes that gh log output can contain.
 function clean(text) {
   return text.replace(/\x1b\[[0-9;]*m/g, '');
@@ -97,6 +166,16 @@ function parseCucumber(messages) {
   return { passed: count('passed'), failed: count('failed'), skipped: count('skipped') };
 }
 
+// Reads the log of the test job alone when possible, otherwise the whole run's log.
+function readLogs(jobsData, runInfo) {
+  const testLogJob = (jobsData.jobs || []).find((j) => j.name === 'test');
+  return testLogJob
+    ? ghText('run', 'view', '--job', String(testLogJob.databaseId), '--log')
+    : ghText('run', 'view', String(runInfo.databaseId), '--log');
+}
+
+// ---- Durations and per-run summary ----------------------------------------------------
+
 function durationMs(step) {
   // gh returns camelCase timestamps (startedAt / completedAt).
   if (!step || !step.startedAt || !step.completedAt) return null;
@@ -109,20 +188,33 @@ function formatDuration(ms) {
   return `${Math.floor(seconds / 60)}m ${String(seconds % 60).padStart(2, '0')}s`;
 }
 
-// Reads one completed run: per-suite counts, durations, and the overall conclusion.
+// Reads one run: per-suite counts, durations, and the overall conclusion.
 function readRun(runInfo) {
   const jobsData = gh('run', 'view', String(runInfo.databaseId), '--json', 'jobs');
   const steps = (jobsData.jobs || []).flatMap((job) => job.steps || []);
-  // Read the test job's log alone. The whole run's log is unavailable while the run is still
-  // in progress, which is the case when the report job runs inside the same run.
-  const testLogJob = (jobsData.jobs || []).find((j) => j.name === 'test');
-  const logText = testLogJob
-    ? ghText('run', 'view', '--job', String(testLogJob.databaseId), '--log')
-    : ghText('run', 'view', String(runInfo.databaseId), '--log');
+  const fromArtifacts = artifactCounts(runInfo.databaseId);
+
+  // Logs are read only when the artifact has no counts for a suite. In CI the run's logs
+  // are not available yet, so a failed log read is treated as "no counts" for that suite.
+  let logText = null;
+  const logsFor = () => {
+    if (logText === null) {
+      try {
+        logText = readLogs(jobsData, runInfo);
+      } catch {
+        logText = '';
+      }
+    }
+    return logText;
+  };
 
   const suites = SUITES.map((suite) => {
     const step = steps.find((s) => s.name === suite.step);
-    const counts = step ? suite.parse(stepMessages(logText, suite.step)) : null;
+    let counts = fromArtifacts[suite.key];
+    if (!counts && step) {
+      const messages = stepMessages(logsFor(), suite.step);
+      counts = messages.length > 0 ? suite.parse(messages) : null;
+    }
     return { suite, step, counts, ms: durationMs(step) };
   });
 

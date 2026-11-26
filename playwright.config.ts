@@ -15,6 +15,8 @@ export default defineConfig({
   reporter: [
     ['html', { outputFolder: 'test-output/playwright-report', open: 'never' }],
     ['list'],
+    // Machine-readable results. The CI report reads pass, fail, and skip counts from this file.
+    ['json', { outputFile: 'test-output/playwright-results.json' }],
   ],
   outputDir: 'test-output/test-results',
   use: {
