@@ -3,6 +3,7 @@ import config from '../../config/config.json';
 
 export interface FrameworkConfig {
   baseUrl: string;
+  apiBaseUrl: string;
   browser: 'chromium' | 'firefox' | 'webkit';
   headless: boolean;
   actionTimeoutMs: number;
@@ -15,8 +16,13 @@ export interface Credentials {
   password: string;
 }
 
+// HEADLESS=true|false in the environment overrides config.json.
+// CI sets HEADLESS=true because runners have no screen.
 export function getConfig(): FrameworkConfig {
-  return config as FrameworkConfig;
+  const headlessEnv = process.env.HEADLESS;
+  const headless =
+    headlessEnv === undefined ? config.headless : headlessEnv.toLowerCase() === 'true';
+  return { ...(config as FrameworkConfig), headless };
 }
 
 // Credentials are read from environment variables so they are never committed.

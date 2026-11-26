@@ -1,0 +1,59 @@
+name: UI and API Automation
+
+on:
+  push:
+    branches: [main]      # pull requests cover feature branches, so no duplicate run per push
+  pull_request:
+  workflow_dispatch:
+
+# All runs log in as the same test user and share one server-side cart.
+# Queue them instead of running in parallel, so runs cannot interfere with each other.
+concurrency:
+  group: ui-tests-shared-test-user
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22   # Cucumber 13 requires Node 22, 24, or 26+
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright tests (UI and API)
+        run: npm test
+        env:
+          HEADLESS: 'true'
+          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+
+      - name: Run Cucumber BDD scenarios
+        if: always()          # still run BDD when the Playwright step failed
+        run: npm run bdd
+        env:
+          HEADLESS: 'true'
+          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+
+      - name: Build Cucumber HTML report
+        if: always()
+        run: npm run bdd:report
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: test-output/
+          retention-days: 14

@@ -1,22 +1,28 @@
+import { expect } from '@playwright/test';
 import { BasePage } from './BasePage';
 
 export class CheckoutPage extends BasePage {
   private readonly countryInput = 'input[placeholder*="Country"]';
   private readonly countrySuggestions = '.ta-results button';
-  private readonly placeOrderButton = '.action__submit';
   private readonly confirmationMessage = '.hero-primary';
 
+  // The app renders Place Order as an <a> link, not a <button>, so no button role
+  // exists for it. The class is the most stable handle available.
+  private placeOrderButton() {
+    return this.page.locator('.action__submit');
+  }
+
+  // Fails with a clear message instead of returning false.
   async isLoaded(): Promise<boolean> {
-    try {
-      await this.page.locator(this.placeOrderButton).waitFor({ state: 'visible' });
-      return true;
-    } catch {
-      return false;
-    }
+    await expect(this.placeOrderButton(), 'checkout Place Order button should be visible').toBeVisible();
+    return true;
   }
 
   async typeCountry(text: string): Promise<void> {
-    await this.page.locator(this.countryInput).pressSequentially(text);
+    // Clear first: pressSequentially appends, which left stale text in the box on a second lookup.
+    const input = this.page.locator(this.countryInput);
+    await input.fill('');
+    await input.pressSequentially(text);
     await this.page.locator(this.countrySuggestions).first().waitFor({ state: 'visible' });
   }
 
@@ -31,7 +37,7 @@ export class CheckoutPage extends BasePage {
   }
 
   async placeOrder(): Promise<void> {
-    await this.page.locator(this.placeOrderButton).click();
+    await this.placeOrderButton().click();
   }
 
   async getConfirmationMessage(): Promise<string> {

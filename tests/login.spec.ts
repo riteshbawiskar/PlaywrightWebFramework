@@ -1,5 +1,6 @@
 import { test, expect } from '../src/fixtures/pageFixtures';
 import { getConfig, getCredentials } from '../src/utils/configReader';
+import { invalidUser, messages } from '../src/data/testData';
 
 test.describe('Login', () => {
   test.beforeEach(async ({ loginPage }) => {
@@ -18,7 +19,7 @@ test.describe('Login', () => {
   });
 
   test('Login fails with invalid credentials', async ({ loginPage }) => {
-    await loginPage.login('invalid.user@example.com', 'WrongPass@123');
-    await loginPage.waitForToast('Incorrect email or password.');
+    await loginPage.login(invalidUser.email, invalidUser.password);
+    await loginPage.waitForToast(messages.incorrectCredentials);
   });
 });

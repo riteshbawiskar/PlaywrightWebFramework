@@ -5,6 +5,8 @@
   "scripts": {
     "test": "playwright test",
     "test:headed": "playwright test --headed",
+    "test:api": "playwright test tests/api",
+    "flaky": "node scripts/flakiness-report.js",
     "report": "playwright show-report",
     "bdd": "cucumber-js",
     "bdd:report": "node scripts/generateCucumberReport.js"

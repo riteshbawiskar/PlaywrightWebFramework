@@ -1,5 +1,6 @@
 {
   "baseUrl": "https://rahulshettyacademy.com/client/#/auth/login",
+  "apiBaseUrl": "https://rahulshettyacademy.com/api/ecom",
   "browser": "chromium",
   "headless": false,
   "actionTimeoutMs": 10000,

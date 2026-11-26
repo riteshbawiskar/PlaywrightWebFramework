@@ -1,4 +1,5 @@
 import { test, expect } from '../src/fixtures/pageFixtures';
+import { messages, products } from '../src/data/testData';
 
 test.describe('Products', () => {
   test('Dashboard lists products after login', async ({ loggedInDashboard }) => {
@@ -7,7 +8,7 @@ test.describe('Products', () => {
   });
 
   test('Adding a product shows a success message', async ({ loggedInDashboard, loginPage }) => {
-    await loggedInDashboard.addProductToCart('ZARA COAT 3');
-    await loginPage.waitForToast('Product Added To Cart');
+    await loggedInDashboard.addProductToCart(products.zaraCoat);
+    await loginPage.waitForToast(messages.productAddedToCart);
   });
 });
