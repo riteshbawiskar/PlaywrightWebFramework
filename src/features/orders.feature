@@ -4,10 +4,12 @@ Feature: Orders
     Given the user is logged in
 
   Scenario: Orders page opens from the navigation
+    Given the user has placed an order for "ZARA COAT 3"
     When the user opens the orders page
     Then the orders page should show "Your Orders"
 
   Scenario: Orders table has the expected columns
+    Given the user has placed an order for "ZARA COAT 3"
     When the user opens the orders page
     Then the orders table should have the column "Order Id"
     And the orders table should have the column "Product Image"

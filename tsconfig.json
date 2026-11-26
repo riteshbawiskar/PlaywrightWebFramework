@@ -13,5 +13,5 @@
       "@utils/*": ["./src/utils/*"]
     }
   },
-  "include": ["src", "tests", "features", "playwright.config.ts", "cucumber.js"]
+  "include": ["src", "tests", "playwright.config.ts", "cucumber.js"]
 }

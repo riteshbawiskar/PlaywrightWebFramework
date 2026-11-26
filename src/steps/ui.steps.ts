@@ -1,6 +1,8 @@
 import { Given, When, Then } from '@cucumber/cucumber';
 import { expect, Page } from '@playwright/test';
 import { CustomWorld } from '../support/world';
+import { addProductAndOpenCheckout } from '../flows/shoppingFlows';
+import { checkout as checkoutData, messages } from '../data/testData';
 
 // Finds a product card by its exact product name.
 function productCard(page: Page, productName: string) {
@@ -122,6 +124,15 @@ Then('the country suggestions should be empty', async function (this: CustomWorl
 });
 
 // ---- Orders ----
+
+// The Orders page only shows its table once the account has an order. Each scenario
+// places its own order, so it passes no matter which scenarios ran before it.
+Given('the user has placed an order for {string}', async function (this: CustomWorld, productName: string) {
+  await addProductAndOpenCheckout(this.dashboardPage, this.cartPage, this.checkoutPage, productName);
+  await this.checkoutPage.selectCountry(checkoutData.country);
+  await this.checkoutPage.placeOrder();
+  await expect(this.page.getByText(messages.orderConfirmation).first(), 'order confirmation').toBeVisible();
+});
 
 When('the user opens the orders page', async function (this: CustomWorld) {
   await this.page.getByRole('button', { name: 'ORDERS' }).click();

@@ -15,8 +15,8 @@ Extends this framework with API tests, a flakiness fix backed by measurements, a
 
 | Area | Where | Notes |
 |---|---|---|
-| API scenarios | [features/api.feature](../../../features/api.feature), [src/steps/api.steps.ts](../../../src/steps/api.steps.ts) | 36 scenarios: login, token shape, routes that should not exist, product data checks, edge-case payloads, invalid tokens. |
-| UI scenarios | [features/](../../../features/), [src/steps/ui.steps.ts](../../../src/steps/ui.steps.ts) | 42 scenarios in total: login, products, cart, checkout, orders. |
+| API scenarios | [src/features/api.feature](../../../src/features/api.feature), [src/steps/api.steps.ts](../../../src/steps/api.steps.ts) | 36 scenarios: login, token shape, routes that should not exist, product data checks, edge-case payloads, invalid tokens. |
+| UI scenarios | [src/features/](../../../src/features/), [src/steps/ui.steps.ts](../../../src/steps/ui.steps.ts) | 42 scenarios in total: login, products, cart, checkout, orders. |
 | API client | [src/api/ApiClient.ts](../../../src/api/ApiClient.ts) | Login, products, and GET calls. Uses Playwright's `request` fixture. |
 | Schema checks | [src/api/schemas.ts](../../../src/api/schemas.ts) | Hand-written checks for response shape. No new dependency. |
 | Payload generation | [src/api/payloads.ts](../../../src/api/payloads.ts) | Deterministic edge-case payloads and generated boundary-length emails. Same inputs every run. |
@@ -101,7 +101,7 @@ The slowest scenarios are the cart and checkout flows. Each UI scenario starts a
 
 ## Known defect: malformed JSON returns 500
 
-Sending a malformed JSON body to the login endpoint returns HTTP **500** instead of 400. The scenario is tagged `@known-defect` in [features/api.feature](../../../features/api.feature), so normal runs skip it and stay green. To see the failure:
+Sending a malformed JSON body to the login endpoint returns HTTP **500** instead of 400. The scenario is tagged `@known-defect` in [src/features/api.feature](../../../src/features/api.feature), so normal runs skip it and stay green. To see the failure:
 
 ```bash
 INCLUDE_KNOWN_DEFECTS=1 npx cucumber-js --tags @known-defect
