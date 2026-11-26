@@ -1,31 +1,42 @@
 # Project 2: AI-Accelerated UI & API Automation
 
-Extends this Playwright + TypeScript framework with API tests, a flakiness fix backed by measurements, and a CI pipeline.
+Extends this framework with API tests, a flakiness fix backed by measurements, a CI pipeline, and a Cucumber-only suite of 78 scenarios.
+
+## Current state
+
+| Measure | Value |
+|---|---|
+| Total scenarios | 78 (42 UI, 36 API) |
+| Test runner | Cucumber only |
+| Last CI result | Passing on PR #5 |
+| Known defect | Malformed JSON returns 500 instead of 400 (tagged `@known-defect`, excluded from normal runs) |
 
 ## What was built
 
 | Area | Where | Notes |
 |---|---|---|
-| API client | [src/api/ApiClient.ts](../../../src/api/ApiClient.ts) | Wraps login and products calls. Uses Playwright's built-in `request` fixture. |
+| API scenarios | [features/api.feature](../../../features/api.feature), [src/steps/api.steps.ts](../../../src/steps/api.steps.ts) | 36 scenarios: login, token shape, routes that should not exist, product data checks, edge-case payloads, invalid tokens. |
+| UI scenarios | [features/](../../../features/), [src/steps/ui.steps.ts](../../../src/steps/ui.steps.ts) | 42 scenarios in total: login, products, cart, checkout, orders. |
+| API client | [src/api/ApiClient.ts](../../../src/api/ApiClient.ts) | Login, products, and GET calls. Uses Playwright's `request` fixture. |
 | Schema checks | [src/api/schemas.ts](../../../src/api/schemas.ts) | Hand-written checks for response shape. No new dependency. |
-| API tests | [tests/api/products.api.spec.ts](../../../tests/api/products.api.spec.ts) | 5 tests: login success and failure, products with and without a token, schema and content checks. |
-| API edge cases | [tests/api/edge-cases.api.spec.ts](../../../tests/api/edge-cases.api.spec.ts) | 15 tests: invalid login payloads, boundary-length emails, malformed JSON (known defect), invalid tokens. |
 | Payload generation | [src/api/payloads.ts](../../../src/api/payloads.ts) | Deterministic edge-case payloads and generated boundary-length emails. Same inputs every run. |
-| Shared checkout journey | [src/flows/shoppingFlows.ts](../../../src/flows/shoppingFlows.ts) | "Add product, open cart, go to checkout" in one place, used by specs and Cucumber steps. |
-| Shared test data | [src/data/testData.ts](../../../src/data/testData.ts) | Product names, messages, and bad-login data used by the TypeScript specs. |
-| Flakiness script | [scripts/flakiness-report.js](../../../scripts/flakiness-report.js) | Runs tests N times with retries off and reports the fail rate per test. |
-| CI workflow | [.github/workflows/ci.yml](../../../.github/workflows/ci.yml) | Headless run of Playwright and Cucumber suites, reports uploaded as artifacts. |
+| Shared checkout journey | [src/flows/shoppingFlows.ts](../../../src/flows/shoppingFlows.ts) | "Add product, open cart, go to checkout" in one place. |
+| Shared test data | [src/data/testData.ts](../../../src/data/testData.ts) | Product names and messages. |
+| CI workflow | [.github/workflows/ci.yml](../../../.github/workflows/ci.yml) | Runs the Cucumber suite headless, posts the result to each PR, and uploads the reports. |
+| CI report script | [scripts/pr-ci-status.js](../../../scripts/pr-ci-status.js) | Writes the CI results and a before-and-after table into the PR description. |
 | Config | [config/config.json](../../../config/config.json) | Added `apiBaseUrl`. `HEADLESS` env var overrides the headless setting. |
+
+Removed in the Cucumber-only change: the Playwright spec files (`tests/`), the Playwright page fixtures, and the flakiness script. The flakiness history below was measured on those files before they were removed.
 
 ## Flakiness: baseline and result
 
-Measured with `node scripts/flakiness-report.js 10 tests/login.spec.ts tests/products.spec.ts tests/cart.spec.ts tests/checkout.spec.ts`, retries off, headless.
+This was measured on the Playwright UI suite before it was removed. The same cart-sharing risk applies to the Cucumber suite, which runs one scenario at a time for the same reason.
 
 | Run | Config | Failed runs | Fail rate |
 |---|---|---|---|
 | Baseline | Default (parallel workers) | 13 of 90 | **14%** |
 | Diagnostic | `WORKERS=1` | 0 of 90 | 0% |
-| After fix | `workers: 1` in [playwright.config.ts](../../../playwright.config.ts) | 0 of 90 | **0%** |
+| After fix | `workers: 1` | 0 of 90 | **0%** |
 
 Per-test baseline failures:
 
@@ -38,7 +49,7 @@ Per-test baseline failures:
 
 **Root cause.** All UI tests log in as one user, and the cart is stored on the server. With parallel workers, one test's item appeared in another test's cart (for example, `["ADIDAS ORIGINAL"]` instead of `"ZARA COAT 3"`), and a completed order emptied the cart while other tests were still using it. Locators were not the problem.
 
-**Fix.** `workers: 1` in the Playwright config. Trade-off: the suite runs slower. Revisit once each test gets its own user or cart.
+**Fix.** Run the tests one at a time. Trade-off: the suite runs slower. Revisit once each test gets its own user or cart.
 
 **Sample size.** 10 runs per test is a small sample. Treat 0% as "no failures seen in 90 runs," not proof of zero flakiness.
 
@@ -57,15 +68,23 @@ Method note: the averages are per test case. Keep the raw per-test timings from 
 
 ## Cucumber repeat check
 
-`npm run bdd` run 10 times in a row, headless:
+`npm run bdd` run 10 times in a row, headless, before the API scenarios and UI scenarios were added:
 
 | Runs | Scenario runs | Failed scenarios | Runs with a failure |
 |---|---|---|---|
 | 10 | 90 | 0 | 0 |
 
+The current suite (78 scenarios) passed in full in CI on PR #4 and PR #5.
+
 ## Known defect: malformed JSON returns 500
 
-Sending a malformed JSON body to the login endpoint returns HTTP **500** instead of 400. The test in [tests/api/edge-cases.api.spec.ts](../../../tests/api/edge-cases.api.spec.ts) is marked with `test.fail()`, so it passes while the defect exists. Once the app returns 400, that test fails, and the `test.fail()` annotation should be removed.
+Sending a malformed JSON body to the login endpoint returns HTTP **500** instead of 400. The scenario is tagged `@known-defect` in [features/api.feature](../../../features/api.feature), so normal runs skip it and stay green. To see the failure:
+
+```bash
+INCLUDE_KNOWN_DEFECTS=1 npx cucumber-js --tags @known-defect
+```
+
+When the app returns 400, remove the `@known-defect` tag so the scenario runs with the rest.
 
 ## AI code review
 
@@ -80,28 +99,25 @@ An independent review agent reviewed the automation code (read-only). Its 11 fin
 | 5 | After hook could leak browsers on failure | Fixed: guarded and closes in `finally` |
 | 6 | Repeated login and no status check before token use | Partly fixed: `loginAndGetToken()` added. UI flow helpers deferred |
 | 7 | Country typing appended to old text | Fixed: clears the field first |
-| 8 | Layout-dependent locators | Deferred: needs live button names confirmed first |
-| 9 | Retries can hide flakiness in CI | Not changed: Playwright's CI output already reports "flaky" |
-| 10 | Flaky label in the flakiness script never set | Fixed: flaky = passed and failed across repeats |
-| 11 | Test data repeated across files | Fixed for TypeScript files: [src/data/testData.ts](../../../src/data/testData.ts). Feature files keep their own literals |
-
-After the changes: type-check passes, Playwright 14/14, Cucumber 9/9 scenarios, and flakiness 0 failures in 140 runs.
+| 8 | Layout-dependent locators | Partly fixed: role locators for cart and checkout buttons. Place Order is an `<a>` link, so it keeps its CSS class |
+| 9 | Retries can hide flakiness in CI | Not changed |
+| 10 | Flaky label in the flakiness script never set | Fixed (the script has since been removed) |
+| 11 | Test data repeated across files | Fixed for TypeScript files: [src/data/testData.ts](../../../src/data/testData.ts) |
 
 ## How to run
 
 ```bash
 npm ci
 npx playwright install chromium
-# Set TEST_USER_EMAIL and TEST_USER_PASSWORD (in .env locally, or as CI secrets)
-npm run test:api          # API tests only
-npm test                  # all Playwright tests (UI and API)
-HEADLESS=true npm test    # headless, as CI runs it
-node scripts/flakiness-report.js 10 tests/login.spec.ts   # flakiness check
+# Set TEST_USER_EMAIL and TEST_USER_PASSWORD in .env (locally) or as CI secrets
+npm test                                                   # all 78 scenarios
+HEADLESS=true npm test                                     # headless, as CI runs it
+INCLUDE_KNOWN_DEFECTS=1 npx cucumber-js --tags @known-defect   # the known defect
 ```
 
 ## Open items
 
-- Authoring-time baseline: recorded from reported averages. Keep the raw per-test timings for the mentor.
-- CI runs only once the repo is pushed to GitHub with the two secrets set (`TEST_USER_EMAIL`, `TEST_USER_PASSWORD`).
-- Schema validation is hand-written. Decision: keep it, since it adds no dependency. Switch to `zod` or `ajv` only if the mentor asks for a library.
-- Place Order is an `<a>` link on the live app, so it uses the CSS class `.action__submit` instead of a role locator.
+- **Authoring-time baseline:** recorded from reported averages. Keep the raw per-test timings for the mentor.
+- **Schema validation:** hand-written. Decision: keep it, since it adds no dependency. Switch to `zod` or `ajv` only if the mentor asks for a library.
+- **Search and price filters:** not tested, because typing in them doesn't change the product list in this app.
+- **Cart persistence:** removing an item is checked on the page only. The item came back after a reload in one test run, and I haven't found out why.

@@ -1,34 +1,31 @@
 # PlaywrightWebFramework
 
-A Playwright + TypeScript automation framework for a sample e-commerce app (`rahulshettyacademy.com`). It covers UI and API tests, and BDD scenarios written in Gherkin.
+A Cucumber (BDD) test framework that uses Playwright for browser automation and API requests. It tests a sample e-commerce app (`rahulshettyacademy.com`) with 78 scenarios: 42 UI and 36 API.
 
-It has three test layers:
-
-- **API tests** (`tests/api/*.api.spec.ts`): call the app's endpoints directly and check status codes, response shape, and content.
-- **Plain Playwright UI tests** (`tests/*.spec.ts`): browser tests written in TypeScript.
-- **Cucumber BDD scenarios** (`features/*.feature` + `src/steps/*.steps.ts`): the same journeys written as plain-English sentences.
+Every test is a Gherkin scenario in `features/*.feature`. Each sentence is matched to a step definition in `src/steps/*.steps.ts`, which calls page objects (for the browser) or the API client (for the endpoints).
 
 For a beginner-friendly walkthrough of how the pieces fit together, see [`PlaywrightWebFramework_Explained.txt`](./PlaywrightWebFramework_Explained.txt). For the Project 2 capstone work (API tests, flakiness fix, CI, metrics), see [`docs/capstone/project-2/README.md`](./docs/capstone/project-2/README.md).
 
 ## Features
 
+- **Gherkin scenarios** for login, dashboard, cart, checkout, orders, and API behaviour.
 - **Page Object Model.** Each page has a class in `src/pages/` that holds its locators and actions.
-- **Role-based locators** where the app has accessible button names (for example "Add To Cart", "Checkout", "Place Order").
-- **Shared user journeys** in `src/flows/` so common steps such as "add a product and go to checkout" are written once.
+- **API client** in `src/api/`, with hand-written response checks and deterministic edge-case payloads.
+- **Shared user journeys** in `src/flows/`, so "add a product and go to checkout" is written once.
 - **Shared test data** in `src/data/testData.ts`.
 - **Externalized configuration.** `config/config.json` holds the base URLs, browser, timeouts, and retries. `HEADLESS=true` overrides the headless setting.
-- **Serial UI runs.** `workers: 1` in [playwright.config.ts](playwright.config.ts) because all UI tests share one user and one server-side cart. See the reason in that file.
-- **Automatic capture on failure.** Playwright saves screenshots, videos, and traces for failed tests. Cucumber scenarios save a screenshot through an `After` hook.
-- **Flakiness check.** `npm run flaky` runs tests repeatedly with retries off and reports the fail rate per test.
-- **CI workflow** in [.github/workflows/ci.yml](.github/workflows/ci.yml). It runs both suites headless and uploads the reports.
+- **Serial runs.** Scenarios run one at a time, because they share one test user and one server-side cart.
+- **Automatic capture on failure.** A Cucumber `After` hook saves a screenshot for each failed scenario.
+- **Known defects are tagged.** `@known-defect` scenarios are excluded from normal runs. See the Known defect section below.
+- **CI workflow** in [.github/workflows/ci.yml](.github/workflows/ci.yml). It runs the suite headless, posts the results to each pull request, and uploads the reports.
 
 ## Tech Stack
 
 | Tool | Purpose |
 |---|---|
 | TypeScript | Language |
-| Playwright Test | Browser automation, API requests, test runner, assertions |
 | Cucumber.js | BDD runner (Gherkin `.feature` files and step definitions) |
+| Playwright | Browser automation and API requests (used as a library, not as a test runner) |
 | cucumber-html-reporter | Converts Cucumber's JSON output into an HTML report |
 | ts-node | Lets Cucumber.js load TypeScript step definitions directly |
 | dotenv | Loads `TEST_USER_EMAIL` and `TEST_USER_PASSWORD` from `.env` |
@@ -40,46 +37,47 @@ For a beginner-friendly walkthrough of how the pieces fit together, see [`Playwr
 config/
 └── config.json                    # baseUrl, apiBaseUrl, browser, headless, timeouts, retries
 
-features/                          # Gherkin scenarios (BDD): cart, checkout, login, products
+features/                          # Gherkin scenarios
+├── api.feature                    # Login, products, route, and token behaviour (API)
+├── cart.feature
+├── checkout.feature
+├── login.feature
+├── orders.feature
+└── products.feature
 
 src/
 ├── api/
-│   ├── ApiClient.ts               # Login and products API calls
+│   ├── ApiClient.ts               # Login, products, and GET calls
+│   ├── payloads.ts                # Deterministic edge-case payloads
 │   └── schemas.ts                 # Hand-written response shape checks
 ├── data/
-│   └── testData.ts                # Shared product names, messages, and credentials for bad-login tests
+│   └── testData.ts                # Shared product names and messages
 ├── flows/
-│   └── shoppingFlows.ts           # Shared journeys (add product, open checkout)
-├── fixtures/
-│   └── pageFixtures.ts            # Gives plain Playwright tests their page objects
+│   └── shoppingFlows.ts           # Shared journey: add product, open checkout
 ├── pages/                         # Page Objects: Base, Login, Dashboard, Cart, Checkout
 ├── steps/                         # Step definitions behind the Gherkin sentences
+│   ├── api.steps.ts
+│   ├── ui.steps.ts
+│   └── ...                        # Login, cart, checkout, product, and common steps
 ├── support/
-│   ├── world.ts                   # Cucumber World: holds the browser and page per scenario
+│   ├── world.ts                   # Cucumber World: browser, page, and API state per scenario
 │   └── hooks.ts                   # Before/After hooks: open and close the browser, screenshot on failure
 └── utils/
     └── configReader.ts            # Typed config loader and credential reader
 
-tests/
-├── api/products.api.spec.ts       # API tests
-├── cart.spec.ts
-├── checkout.spec.ts
-├── login.spec.ts
-└── products.spec.ts
-
 scripts/
-├── flakiness-report.js            # Repeated runs with fail rates per test
-└── generateCucumberReport.js      # Converts cucumber-report.json to HTML
+├── generateCucumberReport.js      # Converts cucumber-report.json to HTML
+└── pr-ci-status.js                # Writes the CI results into a pull request description
 
 docs/capstone/project-2/           # Project 2 notes: what was built, metrics, code review
 .github/workflows/ci.yml           # CI pipeline
-playwright.config.ts               # Playwright runner config
-cucumber.js                        # Cucumber runner config
+cucumber.js                        # Cucumber runner config (paths, formats, tag filter)
+playwright.config.ts               # Playwright settings (not used as a test runner)
 ```
 
 ## Prerequisites
 
-- Node.js 20+ (CI uses Node 20)
+- Node.js 22 or newer (Cucumber 13 requires Node 22, 24, or 26+; CI uses Node 22)
 - npm
 
 ## Setup
@@ -120,52 +118,52 @@ Set `HEADLESS=true` in the environment to run without a visible browser window. 
 
 | Command | What it runs |
 |---|---|
-| `npm test` | All Playwright tests (API and UI) |
-| `npm run test:api` | API tests only |
-| `npm run test:headed` | Playwright tests with a visible browser |
-| `npm run report` | Opens the last Playwright HTML report |
-| `npm run bdd` | Cucumber BDD scenarios |
+| `npm test` | All scenarios (same as `npm run bdd`) |
+| `npm run bdd` | All scenarios, with progress output |
 | `npm run bdd:report` | Builds the Cucumber HTML report from the last run |
-| `npm run flaky` | Runs tests N times (default 10) and reports fail rates. Example: `npm run flaky -- 10 tests/login.spec.ts` |
+| `INCLUDE_KNOWN_DEFECTS=1 npx cucumber-js --tags @known-defect` | The known-defect scenario, which fails on purpose |
 
 Headless run, as CI does it:
 
 ```bash
 HEADLESS=true npm test
-HEADLESS=true npm run bdd
 ```
 
 ## Test Reports & Artifacts
 
 | Artifact | Location |
 |---|---|
-| Playwright HTML report | `test-output/playwright-report/index.html` |
-| Screenshots, videos, traces (failures only) | `test-output/test-results/<test-name>/` |
 | Cucumber JSON report | `test-output/cucumber-reports/cucumber-report.json` |
 | Cucumber HTML report | `test-output/cucumber-reports/cucumber-report.html` |
-| Flakiness summaries | `test-output/flakiness/` |
+| Screenshot on failure | Attached to the failed scenario in the Cucumber report |
 
 `test-output/` is git-ignored. CI uploads it as a build artifact.
 
-## Adding a New Test
+## Adding a New Scenario
 
-**Plain Playwright style:**
-1. New page? Add a Page Object class under `src/pages/` following `CartPage.ts`.
-2. New test? Add a `test(...)` block to a `.spec.ts` file under `tests/`, using the page objects from the fixtures.
-3. New test data? Add it to `src/data/testData.ts`.
-4. Repeated journey? Add a function under `src/flows/`.
+**UI scenario:**
+1. New sentence? Add a step in `src/steps/ui.steps.ts`, or a new file under `src/steps/`, using the page objects on `CustomWorld`.
+2. Add the scenario to the matching file in `features/`, reusing existing steps where possible.
+3. New page? Add a Page Object class under `src/pages/` following `CartPage.ts`.
 
-**API test:**
+**API scenario:**
 1. Add a method to `src/api/ApiClient.ts` for the endpoint.
 2. Add response checks to `src/api/schemas.ts` if the shape matters.
-3. Write the test in `tests/api/`.
-
-**Cucumber BDD style:**
-1. New scenario? Add it to a `.feature` file under `features/`, reusing existing step sentences where possible.
-2. New step sentence? Add a matching `Given`, `When`, or `Then` in a `*.steps.ts` file under `src/steps/`, using the page objects on `CustomWorld`.
+3. Add the scenario to `features/api.feature` and a step in `src/steps/api.steps.ts`.
 
 ## Known Limitations
 
-- **UI tests run one at a time** because they share one user's cart. The suite is slower than it would be with separate users.
+- **Scenarios run one at a time** because they share one user's cart. The suite is slower than it would be with separate users.
 - **Schema checks are hand-written**, with no schema library.
-- **Flakiness numbers** come from 10 repeats per test. That is a small sample.
+- **Search and price filters on the dashboard** are not tested: typing in them doesn't change the product list in this app.
+- **Known defect:** malformed JSON returns 500 instead of 400. See below.
+
+## Known defect
+
+The login endpoint returns HTTP 500 for malformed JSON, where it should return 400. The scenario is tagged `@known-defect` in `features/api.feature`. It's excluded from normal runs, so the suite stays green while the bug exists. Run it on purpose to see the failure:
+
+```bash
+INCLUDE_KNOWN_DEFECTS=1 npx cucumber-js --tags @known-defect
+```
+
+When the app is fixed, remove the `@known-defect` tag so the scenario runs with the rest.
