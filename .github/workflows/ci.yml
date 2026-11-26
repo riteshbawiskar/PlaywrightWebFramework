@@ -33,9 +33,10 @@ jobs:
     if: always() && (github.event_name == 'push' || needs.start.result != 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    # All runs log in as the same test user and share one server-side cart, so test
-    # jobs queue instead of running in parallel. Only this job queues, so the start
-    # and report jobs (which post the PR link and results) are not held back.
+    # Scenarios run in parallel inside this job, one worker per account in
+    # src/test-data/users.json. Two runs at once would share those accounts and their
+    # carts, so runs queue against each other. Only this job queues, so the start and
+    # report jobs (which post the PR link and results) are not held back.
     concurrency:
       group: ui-tests-shared-test-user
       cancel-in-progress: false
@@ -59,7 +60,7 @@ jobs:
         run: npm run bdd
         env:
           HEADLESS: 'true'
-          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+          PARALLEL: '4'
           TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
 
       - name: Build Cucumber HTML report

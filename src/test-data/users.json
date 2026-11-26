@@ -1,0 +1,41 @@
+{
+  "_comment": "Worker test accounts. One account per parallel worker, so carts and orders never collide. Passwords are NOT stored here: all accounts use TEST_USER_PASSWORD from .env (or the CI secret).",
+  "users": [
+    {
+      "id": "worker1",
+      "firstName": "Parallel",
+      "lastName": "Worker1",
+      "email": "parallel.worker1@example.com",
+      "mobile": "9000000001",
+      "occupation": "Engineer",
+      "gender": "Male"
+    },
+    {
+      "id": "worker2",
+      "firstName": "Parallel",
+      "lastName": "Worker2",
+      "email": "parallel.worker2@example.com",
+      "mobile": "9000000002",
+      "occupation": "Engineer",
+      "gender": "Male"
+    },
+    {
+      "id": "worker3",
+      "firstName": "Parallel",
+      "lastName": "Worker3",
+      "email": "parallel.worker3@example.com",
+      "mobile": "9000000003",
+      "occupation": "Engineer",
+      "gender": "Male"
+    },
+    {
+      "id": "worker4",
+      "firstName": "Parallel",
+      "lastName": "Worker4",
+      "email": "parallel.worker4@example.com",
+      "mobile": "9000000004",
+      "occupation": "Engineer",
+      "gender": "Male"
+    }
+  ]
+}

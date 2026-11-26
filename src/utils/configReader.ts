@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import config from '../../config/config.json';
+import testUsers from '../test-data/users.json';
 
 export interface FrameworkConfig {
   baseUrl: string;
@@ -25,13 +26,25 @@ export function getConfig(): FrameworkConfig {
   return { ...(config as FrameworkConfig), headless };
 }
 
-// Credentials are read from environment variables so they are never committed.
-// Set TEST_USER_EMAIL and TEST_USER_PASSWORD before running the tests.
+// Returns the test account for the current parallel worker.
+// Cucumber sets CUCUMBER_WORKER_ID (0, 1, 2, ...) for each worker. A serial run has no
+// worker id, so it uses account 0. Each worker has its own account, so carts and orders
+// never collide between workers. Accounts are listed in src/test-data/users.json.
+// The password is shared by all accounts and comes from TEST_USER_PASSWORD (never committed).
 export function getCredentials(): Credentials {
-  const email = process.env.TEST_USER_EMAIL;
   const password = process.env.TEST_USER_PASSWORD;
-  if (!email || !password) {
-    throw new Error('Set TEST_USER_EMAIL and TEST_USER_PASSWORD environment variables before running the tests.');
+  if (!password) {
+    throw new Error('Set TEST_USER_PASSWORD in .env (locally) or as a CI secret before running the tests.');
   }
-  return { email, password };
+
+  const accounts = testUsers.users;
+  const workerId = Number(process.env.CUCUMBER_WORKER_ID ?? 0);
+  const totalWorkers = Number(process.env.CUCUMBER_TOTAL_WORKERS ?? 1);
+  if (totalWorkers > accounts.length) {
+    throw new Error(
+      `The run uses ${totalWorkers} workers but src/test-data/users.json has ${accounts.length} accounts. ` +
+        'Add accounts or set PARALLEL to a smaller number.',
+    );
+  }
+  return { email: accounts[workerId].email, password };
 }

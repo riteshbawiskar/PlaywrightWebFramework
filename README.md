@@ -2,7 +2,7 @@
 
 A Cucumber (BDD) test framework that uses Playwright for browser automation and API requests. It tests a sample e-commerce app (`rahulshettyacademy.com`) with 78 scenarios: 42 UI and 36 API.
 
-Every test is a Gherkin scenario in `features/*.feature`. Each sentence is matched to a step definition in `src/steps/*.steps.ts`, which calls page objects (for the browser) or the API client (for the endpoints).
+Every test is a Gherkin scenario in `src/features/*.feature`. Each sentence is matched to a step definition in `src/steps/*.steps.ts`, which calls page objects (for the browser) or the API client (for the endpoints).
 
 For a beginner-friendly walkthrough of how the pieces fit together, see [`PlaywrightWebFramework_Explained.txt`](./PlaywrightWebFramework_Explained.txt). For the Project 2 capstone work (API tests, flakiness fix, CI, metrics), see [`docs/capstone/project-2/README.md`](./docs/capstone/project-2/README.md).
 
@@ -14,7 +14,7 @@ For a beginner-friendly walkthrough of how the pieces fit together, see [`Playwr
 - **Shared user journeys** in `src/flows/`, so "add a product and go to checkout" is written once.
 - **Shared test data** in `src/data/testData.ts`.
 - **Externalized configuration.** `config/config.json` holds the base URLs, browser, timeouts, and retries. `HEADLESS=true` overrides the headless setting.
-- **Serial runs.** Scenarios run one at a time, because they share one test user and one server-side cart.
+- **Parallel runs.** Scenarios run in parallel, one worker per test account in `src/test-data/users.json`. Each worker has its own cart, so workers do not interfere.
 - **Automatic capture on failure.** A Cucumber `After` hook saves a screenshot for each failed scenario.
 - **Known defects are tagged.** `@known-defect` scenarios are excluded from normal runs. See the Known defect section below.
 - **CI workflow** in [.github/workflows/ci.yml](.github/workflows/ci.yml). It runs the suite headless, posts the results to each pull request, and uploads the reports.
@@ -28,7 +28,7 @@ For a beginner-friendly walkthrough of how the pieces fit together, see [`Playwr
 | Playwright | Browser automation and API requests (used as a library, not as a test runner) |
 | cucumber-html-reporter | Converts Cucumber's JSON output into an HTML report |
 | ts-node | Lets Cucumber.js load TypeScript step definitions directly |
-| dotenv | Loads `TEST_USER_EMAIL` and `TEST_USER_PASSWORD` from `.env` |
+| dotenv | Loads `TEST_USER_PASSWORD` from `.env` |
 | Node.js / npm | Runtime and package management |
 
 ## Project Structure
@@ -37,7 +37,7 @@ For a beginner-friendly walkthrough of how the pieces fit together, see [`Playwr
 config/
 └── config.json                    # baseUrl, apiBaseUrl, browser, headless, timeouts, retries
 
-features/                          # Gherkin scenarios
+src/features/                      # Gherkin scenarios
 ├── api.feature                    # Login, products, route, and token behaviour (API)
 ├── cart.feature
 ├── checkout.feature
@@ -87,14 +87,13 @@ npm ci
 npx playwright install chromium
 ```
 
-Create a `.env` file in the project root (copy `.env.example`) with the test user's credentials:
+Create a `.env` file in the project root (copy `.env.example`) with the password shared by the test accounts:
 
 ```
-TEST_USER_EMAIL=your-test-user@example.com
 TEST_USER_PASSWORD=your-test-password
 ```
 
-`.env` is git-ignored. Never commit real credentials.
+`.env` is git-ignored. Never commit real credentials. The account emails are in `src/test-data/users.json`, which holds no passwords and is safe to commit. In CI the password comes from the `TEST_USER_PASSWORD` secret.
 
 ## Configuration
 
@@ -129,6 +128,8 @@ Headless run, as CI does it:
 HEADLESS=true npm test
 ```
 
+Parallel workers default to 4, one per account in `src/test-data/users.json`. Set `PARALLEL` to change it, for example `PARALLEL=1` for a serial run. The count cannot exceed the number of accounts; the run stops with a message if it does.
+
 ## Test Reports & Artifacts
 
 | Artifact | Location |
@@ -143,24 +144,25 @@ HEADLESS=true npm test
 
 **UI scenario:**
 1. New sentence? Add a step in `src/steps/ui.steps.ts`, or a new file under `src/steps/`, using the page objects on `CustomWorld`.
-2. Add the scenario to the matching file in `features/`, reusing existing steps where possible.
+2. Add the scenario to the matching file in `src/features/`, reusing existing steps where possible.
 3. New page? Add a Page Object class under `src/pages/` following `CartPage.ts`.
 
 **API scenario:**
 1. Add a method to `src/api/ApiClient.ts` for the endpoint.
 2. Add response checks to `src/api/schemas.ts` if the shape matters.
-3. Add the scenario to `features/api.feature` and a step in `src/steps/api.steps.ts`.
+3. Add the scenario to `src/features/api.feature` and a step in `src/steps/api.steps.ts`.
 
 ## Known Limitations
 
-- **Scenarios run one at a time** because they share one user's cart. The suite is slower than it would be with separate users.
+- **Each parallel worker needs its own account.** Adding workers means adding accounts to `src/test-data/users.json` (same password), or the run stops.
+- **Scenarios on one worker run in sequence,** so they share that worker's cart. Scenarios that need an empty cart or an order must set that up themselves.
 - **Schema checks are hand-written**, with no schema library.
 - **Search and price filters on the dashboard** are not tested: typing in them doesn't change the product list in this app.
 - **Known defect:** malformed JSON returns 500 instead of 400. See below.
 
 ## Known defect
 
-The login endpoint returns HTTP 500 for malformed JSON, where it should return 400. The scenario is tagged `@known-defect` in `features/api.feature`. It's excluded from normal runs, so the suite stays green while the bug exists. Run it on purpose to see the failure:
+The login endpoint returns HTTP 500 for malformed JSON, where it should return 400. The scenario is tagged `@known-defect` in `src/features/api.feature`. It's excluded from normal runs, so the suite stays green while the bug exists. Run it on purpose to see the failure:
 
 ```bash
 INCLUDE_KNOWN_DEFECTS=1 npx cucumber-js --tags @known-defect
