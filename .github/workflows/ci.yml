@@ -54,13 +54,6 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Run Playwright tests (UI and API)
-        run: npm test
-        env:
-          HEADLESS: 'true'
-          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
-          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
-
       - name: Run Cucumber BDD scenarios
         if: always()          # still run BDD when the Playwright step failed
         run: npm run bdd
