@@ -2,8 +2,15 @@ name: UI and API Automation
 
 on:
   push:
+    branches: [main]      # pull requests cover feature branches, so no duplicate run per push
   pull_request:
   workflow_dispatch:
+
+# All runs log in as the same test user and share one server-side cart.
+# Queue them instead of running in parallel, so runs cannot interfere with each other.
+concurrency:
+  group: ui-tests-shared-test-user
+  cancel-in-progress: false
 
 jobs:
   test:
