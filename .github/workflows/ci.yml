@@ -6,12 +6,6 @@ on:
   pull_request:
   workflow_dispatch:
 
-# All runs log in as the same test user and share one server-side cart.
-# Queue them instead of running in parallel, so runs cannot interfere with each other.
-concurrency:
-  group: ui-tests-shared-test-user
-  cancel-in-progress: false
-
 jobs:
   # Runs first on every pull request and posts a link to this run in the PR
   # description, so the link is visible while the tests are still going.
@@ -39,6 +33,12 @@ jobs:
     if: always() && (github.event_name == 'push' || needs.start.result != 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # All runs log in as the same test user and share one server-side cart, so test
+    # jobs queue instead of running in parallel. Only this job queues, so the start
+    # and report jobs (which post the PR link and results) are not held back.
+    concurrency:
+      group: ui-tests-shared-test-user
+      cancel-in-progress: false
 
     steps:
       - uses: actions/checkout@v4
