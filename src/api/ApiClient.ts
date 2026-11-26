@@ -52,6 +52,14 @@ export class ApiClient {
     return body.token;
   }
 
+  // Sends a raw string body, for testing malformed JSON that an object cannot express.
+  async postRawLogin(rawBody: string): Promise<APIResponse> {
+    return this.request.post(`${this.baseUrl}/auth/login`, {
+      headers: { 'Content-Type': 'application/json' },
+      data: rawBody,
+    });
+  }
+
   async getProducts(token?: string): Promise<APIResponse> {
     const headers: Record<string, string> = {};
     if (token) {

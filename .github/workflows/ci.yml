@@ -1,4 +1,4 @@
-name: UI and API Automation
+name: ci-run
 
 on:
   push:
@@ -6,16 +6,39 @@ on:
   pull_request:
   workflow_dispatch:
 
-# All runs log in as the same test user and share one server-side cart.
-# Queue them instead of running in parallel, so runs cannot interfere with each other.
-concurrency:
-  group: ui-tests-shared-test-user
-  cancel-in-progress: false
-
 jobs:
+  # Runs first on every pull request and posts a link to this run in the PR
+  # description, so the link is visible while the tests are still going.
+  start:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Post the in-progress link to the PR description
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_ID: ${{ github.run_id }}
+        run: node scripts/pr-ci-status.js ${{ github.event.pull_request.number }}
+
   test:
+    needs: start
+    # Tests run on every push, and on pull requests even if posting the link failed.
+    if: always() && (github.event_name == 'push' || needs.start.result != 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # All runs log in as the same test user and share one server-side cart, so test
+    # jobs queue instead of running in parallel. Only this job queues, so the start
+    # and report jobs (which post the PR link and results) are not held back.
+    concurrency:
+      group: ui-tests-shared-test-user
+      cancel-in-progress: false
 
     steps:
       - uses: actions/checkout@v4
@@ -57,3 +80,25 @@ jobs:
           name: test-reports
           path: test-output/
           retention-days: 14
+
+  # Runs after the tests on every pull request, pass or fail, and refreshes the
+  # CI results table in the PR description. It needs only read access to Actions
+  # and write access to the pull request, granted to this job alone.
+  report:
+    needs: test
+    if: always() && github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update CI results in the PR description
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_ID: ${{ github.run_id }}
+        run: node scripts/pr-ci-status.js ${{ github.event.pull_request.number }}

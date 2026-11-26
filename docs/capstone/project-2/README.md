@@ -9,6 +9,10 @@ Extends this Playwright + TypeScript framework with API tests, a flakiness fix b
 | API client | [src/api/ApiClient.ts](../../../src/api/ApiClient.ts) | Wraps login and products calls. Uses Playwright's built-in `request` fixture. |
 | Schema checks | [src/api/schemas.ts](../../../src/api/schemas.ts) | Hand-written checks for response shape. No new dependency. |
 | API tests | [tests/api/products.api.spec.ts](../../../tests/api/products.api.spec.ts) | 5 tests: login success and failure, products with and without a token, schema and content checks. |
+| API edge cases | [tests/api/edge-cases.api.spec.ts](../../../tests/api/edge-cases.api.spec.ts) | 15 tests: invalid login payloads, boundary-length emails, malformed JSON (known defect), invalid tokens. |
+| Payload generation | [src/api/payloads.ts](../../../src/api/payloads.ts) | Deterministic edge-case payloads and generated boundary-length emails. Same inputs every run. |
+| Shared checkout journey | [src/flows/shoppingFlows.ts](../../../src/flows/shoppingFlows.ts) | "Add product, open cart, go to checkout" in one place, used by specs and Cucumber steps. |
+| Shared test data | [src/data/testData.ts](../../../src/data/testData.ts) | Product names, messages, and bad-login data used by the TypeScript specs. |
 | Flakiness script | [scripts/flakiness-report.js](../../../scripts/flakiness-report.js) | Runs tests N times with retries off and reports the fail rate per test. |
 | CI workflow | [.github/workflows/ci.yml](../../../.github/workflows/ci.yml) | Headless run of Playwright and Cucumber suites, reports uploaded as artifacts. |
 | Config | [config/config.json](../../../config/config.json) | Added `apiBaseUrl`. `HEADLESS` env var overrides the headless setting. |
@@ -50,6 +54,18 @@ Figures are the author's reported average timings for one API test case, measure
 Saving formula: `(manual − AI) ÷ manual × 100`. Midpoint calculation: (55 − 17.5) ÷ 55 = 68%. Worst case: (50 − 20) ÷ 50 = 60%. Best case: (60 − 15) ÷ 60 = 75%.
 
 Method note: the averages are per test case. Keep the raw per-test timings from the measurement session if the mentor asks for them.
+
+## Cucumber repeat check
+
+`npm run bdd` run 10 times in a row, headless:
+
+| Runs | Scenario runs | Failed scenarios | Runs with a failure |
+|---|---|---|---|
+| 10 | 90 | 0 | 0 |
+
+## Known defect: malformed JSON returns 500
+
+Sending a malformed JSON body to the login endpoint returns HTTP **500** instead of 400. The test in [tests/api/edge-cases.api.spec.ts](../../../tests/api/edge-cases.api.spec.ts) is marked with `test.fail()`, so it passes while the defect exists. Once the app returns 400, that test fails, and the `test.fail()` annotation should be removed.
 
 ## AI code review
 
