@@ -113,7 +113,12 @@ function formatDuration(ms) {
 function readRun(runInfo) {
   const jobsData = gh('run', 'view', String(runInfo.databaseId), '--json', 'jobs');
   const steps = (jobsData.jobs || []).flatMap((job) => job.steps || []);
-  const logText = ghText('run', 'view', String(runInfo.databaseId), '--log');
+  // Read the test job's log alone. The whole run's log is unavailable while the run is still
+  // in progress, which is the case when the report job runs inside the same run.
+  const testLogJob = (jobsData.jobs || []).find((j) => j.name === 'test');
+  const logText = testLogJob
+    ? ghText('run', 'view', '--job', String(testLogJob.databaseId), '--log')
+    : ghText('run', 'view', String(runInfo.databaseId), '--log');
 
   const suites = SUITES.map((suite) => {
     const step = steps.find((s) => s.name === suite.step);
