@@ -282,7 +282,7 @@ function sectionFor(run) {
     const state = inCi && testNow ? testNow.status : run.status;
     return [
       START, '### CI test results', '',
-      `**ci-run** [#${run.databaseId}](${run.url}) is **${state}** for commit \`${commit}\`. Last updated: ${stamp}.`,
+      `[ci-run](${run.url}) is **${state}** for commit \`${commit}\`. Last updated: ${stamp}.`,
       END,
     ].join('\n');
   }
@@ -295,7 +295,7 @@ function sectionFor(run) {
     START,
     '### CI test results',
     '',
-    `**ci-run** [#${run.databaseId}](${run.url}) on commit \`${run.headSha.slice(0, 7)}\`. Overall: ${verdict}. Last updated: ${stamp}.`,
+    `[ci-run](${run.url}) on commit \`${run.headSha.slice(0, 7)}\`. Overall: ${verdict}. Last updated: ${stamp}.`,
     '',
     '#### Suites',
     '',
@@ -314,12 +314,11 @@ function sectionFor(run) {
 
 const section = sectionFor(run);
 
-// Replace the existing section if there is one; otherwise append it.
+// The CI section goes at the top of the description. Any older copy, wherever it sits, is removed first.
 const body = pr.body || '';
 const pattern = new RegExp(`${START}[\\s\\S]*?${END}`);
-const newBody = pattern.test(body)
-  ? body.replace(pattern, section)
-  : `${body.trimEnd()}\n\n${section}\n`;
+const rest = body.replace(pattern, '').trim();
+const newBody = rest ? `${section}\n\n${rest}\n` : `${section}\n`;
 
 if (dryRun) {
   console.log(section);
