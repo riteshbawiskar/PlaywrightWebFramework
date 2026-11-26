@@ -27,5 +27,6 @@ After(async function (this: CustomWorld, scenario) {
     // Always close, even if the screenshot failed, so browsers are not leaked.
     await this.context?.close();
     await this.browser?.close();
+    await this.apiContext?.dispose();
   }
 });

@@ -1,5 +1,5 @@
 import { setWorldConstructor, setDefaultTimeout, World, IWorldOptions } from '@cucumber/cucumber';
-import { Browser, BrowserContext, Page } from '@playwright/test';
+import { APIRequestContext, APIResponse, Browser, BrowserContext, Page } from '@playwright/test';
 import { LoginPage } from '../pages/LoginPage';
 import { DashboardPage } from '../pages/DashboardPage';
 import { CartPage } from '../pages/CartPage';
@@ -14,6 +14,11 @@ export class CustomWorld extends World {
   dashboardPage!: DashboardPage;
   cartPage!: CartPage;
   checkoutPage!: CheckoutPage;
+
+  // API scenarios: a request context per scenario, plus the last response and token.
+  apiContext?: APIRequestContext;
+  apiResponse?: APIResponse;
+  apiToken?: string;
 
   constructor(options: IWorldOptions) {
     super(options);
