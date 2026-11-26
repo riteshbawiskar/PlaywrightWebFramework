@@ -33,7 +33,9 @@ export class CheckoutPage extends BasePage {
 
   async selectCountry(country: string): Promise<void> {
     await this.typeCountry(country);
-    await this.page.locator(this.countrySuggestions).filter({ hasText: country }).first().click();
+    // Exact match. A partial match picks the wrong country: "India" also matches
+    // "British Indian Ocean Territory", which appears first in the list.
+    await this.page.locator(this.countrySuggestions).getByText(country, { exact: true }).first().click();
   }
 
   async placeOrder(): Promise<void> {
