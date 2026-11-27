@@ -130,6 +130,8 @@ Set `HEADLESS=true` in the environment to run without a visible browser window. 
 | `npm run bdd:report` | Builds the Cucumber HTML report from the last run |
 | `npm run flake` | Runs the suite 5 times and reports scenarios that pass only some of the time. Writes `test-output/flake/flake-report.md`. Pass a number to change the run count, for example `node scripts/flake-check.js 10` |
 | `INCLUDE_KNOWN_DEFECTS=1 npx cucumber-js --tags @known-defect` | The known-defect scenario, which fails on purpose |
+| `node scripts/ai-usage.js run "<task>" "<prompt>"` | Runs one Claude Code call and records its tokens and cost in `docs/ai-usage/usage-log.csv`. See [docs/features/ai-usage-log.md](docs/features/ai-usage-log.md) |
+| `node scripts/ai-usage.js summary` | Totals for every recorded AI call |
 
 Headless run, as CI does it:
 

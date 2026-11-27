@@ -17,5 +17,6 @@ One page per feature in this framework. Each page answers four questions:
 | Flake check | Measure which scenarios are unstable, instead of guessing | [flake-check.md](flake-check.md) |
 | CI pipeline (`ci-run`) | Run the suite on every push and pull request | [ci-pipeline.md](ci-pipeline.md) |
 | PR results table | Show the latest results in the pull request itself | [pr-results-table.md](pr-results-table.md) |
+| AI usage and cost log | Put a token and dollar cost next to each AI-assisted task | [ai-usage-log.md](ai-usage-log.md) |
 
 Start with the README in the repository root for setup and commands.
