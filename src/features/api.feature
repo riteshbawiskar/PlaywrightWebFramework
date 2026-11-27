@@ -134,3 +134,23 @@ Feature: Products API
   Scenario: Every product has a category and an image URL
     When the client logs in and requests the products
     Then every product should have a category and an image URL
+
+  # Registration scenarios send generated data that the server rejects, so no account is created.
+  Scenario: Registration with a password under 8 characters is rejected
+    When the client registers with a password of 5 characters
+    Then the response status should be 422
+    And the response error should be "Password must be 8 Character Long!"
+
+  Scenario: Registration without a first name is rejected
+    When the client registers without a first name
+    Then the response status should be 422
+    And the response error should be "First Name is required!"
+
+  Scenario: Registration with a first name of 2 characters is rejected
+    When the client registers with a first name of 2 characters
+    Then the response status should be 422
+    And the response error should be "First Name must be 3 to 20 characters long!"
+
+  Scenario: Generated registration details use only reserved example email domains
+    Given the client has generated registration details
+    Then the generated email should use a reserved example domain

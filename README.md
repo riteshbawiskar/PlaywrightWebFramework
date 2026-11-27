@@ -15,6 +15,7 @@ For a beginner-friendly walkthrough of how the pieces fit together, see [`Playwr
 - **API client** in `src/api/`, with hand-written response checks and deterministic edge-case payloads.
 - **Shared user journeys** in `src/flows/`, so "add a product and go to checkout" is written once.
 - **Shared test data** in `src/data/testData.ts`.
+- **Generated test data.** Faker builds registration details with fake, reserved-domain emails. See [docs/features/generated-test-data.md](docs/features/generated-test-data.md).
 - **Externalized configuration.** `config/config.json` holds the base URLs, browser, timeouts, and retries. `HEADLESS=true` overrides the headless setting.
 - **Parallel runs.** Scenarios run in parallel, one worker per test account in `src/test-data/users.json`. Each worker has its own cart, so workers do not interfere.
 - **Automatic capture on failure.** A Cucumber `After` hook saves a screenshot for each failed scenario.
@@ -56,6 +57,7 @@ src/
 ├── data/
 │   └── testData.ts                # Shared product names and messages
 ├── test-data/
+│   ├── registrationData.ts        # Faker-generated registration details (reserved emails only)
 │   └── users.json                 # Worker test accounts (no passwords)
 ├── flows/
 │   └── shoppingFlows.ts           # Shared journey: add product, open checkout
