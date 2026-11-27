@@ -39,7 +39,7 @@ Four scenarios in [api.feature](../../src/features/api.feature) use the generato
 
 The checkout form in this app asks only for a country. Faker adds nothing there, so the country stays in [testData.ts](../../src/data/testData.ts). Faker is used where the data has rules to test.
 
-## What changed after adding it
+## What we achieved after adding this feature: Generated test data (Faker)
 
 - The suite has 82 scenarios (78 before, plus 4 registration scenarios). All pass.
 - Every generated email is checked against the reserved-domain rule.

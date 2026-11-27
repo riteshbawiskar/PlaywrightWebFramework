@@ -9,7 +9,7 @@ The UI tests only see what the browser shows. An API test checks the backend dir
 - **API client** (`src/api/ApiClient.ts`): one method per endpoint, such as `login`, `getProducts`, and `get`. Tests never build URLs by hand.
 - **Payloads** (`src/api/payloads.ts`): fixed edge-case inputs, such as a missing email, an empty password, and emails at the length limit. The same inputs are used every run.
 - **Schema checks** (`src/api/schemas.ts`): hand-written checks for response shape. The library choice (zod or ajv) was left out to avoid a new dependency.
-- **Feature file** (`src/features/api.feature`): 36 scenarios covering login, token shape, product data, unknown routes (404), and invalid tokens.
+- **Feature file** (`src/features/api.feature`): 40 scenarios covering login, token shape, product data, unknown routes (404), invalid tokens, and registration checks (short password, missing or short first name). The registration data comes from [generated-test-data.md](generated-test-data.md).
 
 ```mermaid
 flowchart TD
@@ -26,7 +26,7 @@ flowchart TD
 
 A schema library would be the usual choice. We kept the checks hand-written for now, so the project adds no dependency. If the mentor asks for a library, the switch is one file.
 
-## What changed after adding it
+## What we achieved after adding this feature: API tests
 
 - **Coverage of the backend:** login rules, token handling, and product data are checked without the browser.
 - **Speed:** API scenarios take about 0.2s each on average, against 1–3s for the UI.

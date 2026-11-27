@@ -27,7 +27,7 @@ flowchart LR
 - Place Order is an `<a>` link in this app, so it keeps its class `.action__submit`. The reason is noted in the code.
 - Country selection uses an **exact** text match. A partial match picked "British Indian Ocean Territory" when the test asked for "India".
 
-## What changed after adding it
+## What we achieved after adding this feature: Page Objects and shared flows
 
 - **Fewer edits:** a locator change is now one edit in one class.
 - **Fewer wrong matches:** the exact country match fixed a test that picked the wrong country.

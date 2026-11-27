@@ -23,7 +23,7 @@ flowchart TD
     H --> I[Update PR description, keep the rest]
 ```
 
-## What changed after adding it
+## What we achieved after adding this feature: PR results table
 
 - The pull request shows the result at the top, with a link to the run labelled `ci-run`.
 - The before-and-after table shows the change in run time against `main`. For PR #8 it showed 78 of 78 passing, with the run time going from 4m 03s to 1m 15s.

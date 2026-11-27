@@ -27,7 +27,7 @@ flowchart TD
     J --> K[Totals, failed calls, average cost per call]
 ```
 
-## What changed after adding it
+## What we achieved after adding this feature: AI usage and cost log
 
 - Each AI-assisted task now has a cost next to it in the log.
 - `summary` gives the totals for every recorded call.
