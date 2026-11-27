@@ -6,6 +6,8 @@ Every test is a Gherkin scenario in `src/features/*.feature`. Each sentence is m
 
 For a beginner-friendly walkthrough of how the pieces fit together, see [`PlaywrightWebFramework_Explained.txt`](./PlaywrightWebFramework_Explained.txt). For the Project 2 capstone work (API tests, flakiness fix, CI, metrics), see [`docs/capstone/project-2/README.md`](./docs/capstone/project-2/README.md).
 
+**Why each feature exists.** [`docs/features/`](./docs/features/README.md) has one page per feature. Each page explains the problem it solves, how it works (with a flowchart), and what changed after it was added.
+
 ## Features
 
 - **Gherkin scenarios** for login, dashboard, cart, checkout, orders, and API behaviour.
@@ -17,7 +19,8 @@ For a beginner-friendly walkthrough of how the pieces fit together, see [`Playwr
 - **Parallel runs.** Scenarios run in parallel, one worker per test account in `src/test-data/users.json`. Each worker has its own cart, so workers do not interfere.
 - **Automatic capture on failure.** A Cucumber `After` hook saves a screenshot for each failed scenario.
 - **Known defects are tagged.** `@known-defect` scenarios are excluded from normal runs. See the Known defect section below.
-- **CI workflow** in [.github/workflows/ci.yml](.github/workflows/ci.yml). It runs the suite headless, posts the results to each pull request, and uploads the reports.
+- **Flake check.** `npm run flake` reruns the suite and names the scenarios that pass only some of the time. See [docs/features/flake-check.md](docs/features/flake-check.md).
+- **CI workflow** in [.github/workflows/ci.yml](.github/workflows/ci.yml). It runs the suite headless with 4 parallel workers, posts the results to each pull request, and uploads the reports. See [docs/features/ci-pipeline.md](docs/features/ci-pipeline.md).
 
 ## Tech Stack
 
@@ -52,6 +55,8 @@ src/
 │   └── schemas.ts                 # Hand-written response shape checks
 ├── data/
 │   └── testData.ts                # Shared product names and messages
+├── test-data/
+│   └── users.json                 # Worker test accounts (no passwords)
 ├── flows/
 │   └── shoppingFlows.ts           # Shared journey: add product, open checkout
 ├── pages/                         # Page Objects: Base, Login, Dashboard, Cart, Checkout
@@ -66,10 +71,13 @@ src/
     └── configReader.ts            # Typed config loader and credential reader
 
 scripts/
+├── flake-check.js                 # Reruns the suite and reports unstable scenarios
 ├── generateCucumberReport.js      # Converts cucumber-report.json to HTML
 └── pr-ci-status.js                # Writes the CI results into a pull request description
 
-docs/capstone/project-2/           # Project 2 notes: what was built, metrics, code review
+docs/
+├── features/                      # One page per feature: why, how, what changed
+└── capstone/project-2/            # Project 2 notes: what was built, metrics, code review
 .github/workflows/ci.yml           # CI pipeline
 cucumber.js                        # Cucumber runner config (paths, formats, tag filter)
 playwright.config.ts               # Playwright settings (not used as a test runner)
@@ -120,6 +128,7 @@ Set `HEADLESS=true` in the environment to run without a visible browser window. 
 | `npm test` | All scenarios (same as `npm run bdd`) |
 | `npm run bdd` | All scenarios, with progress output |
 | `npm run bdd:report` | Builds the Cucumber HTML report from the last run |
+| `npm run flake` | Runs the suite 5 times and reports scenarios that pass only some of the time. Writes `test-output/flake/flake-report.md`. Pass a number to change the run count, for example `node scripts/flake-check.js 10` |
 | `INCLUDE_KNOWN_DEFECTS=1 npx cucumber-js --tags @known-defect` | The known-defect scenario, which fails on purpose |
 
 Headless run, as CI does it:

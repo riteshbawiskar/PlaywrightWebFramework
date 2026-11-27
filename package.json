@@ -5,7 +5,8 @@
   "scripts": {
     "test": "cucumber-js",
     "bdd": "cucumber-js",
-    "bdd:report": "node scripts/generateCucumberReport.js"
+    "bdd:report": "node scripts/generateCucumberReport.js",
+    "flake": "node scripts/flake-check.js"
   },
   "keywords": [],
   "author": "",
