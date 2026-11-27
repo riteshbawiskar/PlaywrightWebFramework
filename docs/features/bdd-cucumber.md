@@ -32,10 +32,10 @@ The `Before` hook opens a new browser for each scenario, and the `After` hook cl
 
 - Code: [src/support/hooks.ts](../../src/support/hooks.ts), [src/support/world.ts](../../src/support/world.ts)
 
-## What changed after adding it
+## What we achieved after adding this feature: Cucumber BDD scenarios
 
 - **Readability:** the scenarios can be checked against the business rules without reading code.
-- **One runner:** the earlier Playwright specs were removed, so there is one suite to maintain. The scenario count is 78 (42 UI, 36 API).
+- **One runner:** the earlier Playwright specs were removed, so there is one suite to maintain. The scenario count is 82 (42 UI, 40 API).
 - **Failure evidence:** each failure has a screenshot in the report.
 
 ## Trade-offs

@@ -46,7 +46,7 @@ flowchart TD
 - **Your files are safe.** Only changes Claude made to tracked files are reverted. Untracked files, such as `.metadata/`, are never deleted.
 - **Personal account only.** The script needs a token for the personal account that owns the repository, so pull requests and pushes go to the right account.
 
-## What changed after adding it
+## What we achieved after adding this feature: Guarded auto-fix (local)
 
 - The loop from failure to fix is one command, instead of reading logs by hand.
 - Every call's tokens and cost are recorded in the [usage log](ai-usage-log.md), so the cost of each fix is visible.

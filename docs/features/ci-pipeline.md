@@ -29,7 +29,7 @@ flowchart TD
 
 The test job uses a concurrency group. Two runs at once would use the same four worker accounts, and their carts would collide. So a second run waits for the first. The start and report jobs are not queued, so the link and results still post right away.
 
-## What changed after adding it
+## What we achieved after adding this feature: CI pipeline (ci-run)
 
 - **Every change is tested** on a clean machine before it is merged.
 - **Failures are visible** in the pull request, with a link to the run.

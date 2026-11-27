@@ -20,9 +20,9 @@ flowchart TD
     E -- no --> D
 ```
 
-## What changed after adding it
+## What we achieved after adding this feature: Known-defect tag
 
-- The suite reports 78 scenarios in normal runs, with the known defect excluded.
+- The suite reports 82 scenarios in normal runs, with the known defect excluded.
 - The bug is visible in the feature file and in the docs, so it cannot be forgotten.
 
 ## Trade-offs

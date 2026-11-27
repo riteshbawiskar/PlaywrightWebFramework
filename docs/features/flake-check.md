@@ -31,7 +31,7 @@ flowchart TD
     J --> K
 ```
 
-## What changed after adding it
+## What we achieved after adding this feature: Flake check
 
 - **Measured result:** five runs gave 390 scenario runs with no failures, and no flaky scenarios, on the current code.
 - **Named flakes:** when a scenario does fail, the report names it and shows how often.

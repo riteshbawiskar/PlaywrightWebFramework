@@ -27,11 +27,11 @@ flowchart TD
 
 Scenarios on one worker run in sequence, so they share that worker's cart. Scenarios that need a known state must set it up. The cart scenarios empty the cart in a `Given` step, and the Orders scenarios place their own order first.
 
-## What changed after adding it
+## What we achieved after adding this feature: Parallel workers and test accounts
 
 - **Run time:** the full suite went from about 97s (serial) to about 28s with 4 workers. That is about 3.4 times faster, measured on the same machine.
-- **Stability:** three parallel runs in a row all passed 78 of 78. Before the Orders fix, the Orders scenarios failed depending on which scenarios ran first.
-- **Serial still works:** `PARALLEL=1` passed 78 of 78.
+- **Stability:** three parallel runs in a row all passed (78 scenarios at the time). Before the Orders fix, the Orders scenarios failed depending on which scenarios ran first.
+- **Serial still works:** `PARALLEL=1` passed the full suite (78 scenarios at the time). The suite now has 82 scenarios.
 
 ## Open issues
 

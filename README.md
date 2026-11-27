@@ -1,6 +1,6 @@
 # PlaywrightWebFramework
 
-A Cucumber (BDD) test framework that uses Playwright for browser automation and API requests. It tests a sample e-commerce app (`rahulshettyacademy.com`) with 78 scenarios: 42 UI and 36 API.
+A Cucumber (BDD) test framework that uses Playwright for browser automation and API requests. It tests a sample e-commerce app (`rahulshettyacademy.com`) with 82 scenarios: 42 UI and 40 API.
 
 Every test is a Gherkin scenario in `src/features/*.feature`. Each sentence is matched to a step definition in `src/steps/*.steps.ts`, which calls page objects (for the browser) or the API client (for the endpoints).
 
@@ -22,6 +22,8 @@ For a beginner-friendly walkthrough of how the pieces fit together, see [`Playwr
 - **Known defects are tagged.** `@known-defect` scenarios are excluded from normal runs. See the Known defect section below.
 - **Flake check.** `npm run flake` reruns the suite and names the scenarios that pass only some of the time. See [docs/features/flake-check.md](docs/features/flake-check.md).
 - **CI workflow** in [.github/workflows/ci.yml](.github/workflows/ci.yml). It runs the suite headless with 4 parallel workers, posts the results to each pull request, and uploads the reports. See [docs/features/ci-pipeline.md](docs/features/ci-pipeline.md).
+- **Guarded auto-fix (local).** `scripts/auto-fix.js` repairs a pull request's failing tests with Claude Code on your machine, and pushes only if the suite passes. See [docs/features/auto-fix-local.md](docs/features/auto-fix-local.md).
+- **AI usage and cost log.** `scripts/ai-usage.js` records the tokens and cost of each scripted Claude call. See [docs/features/ai-usage-log.md](docs/features/ai-usage-log.md).
 
 ## Tech Stack
 
@@ -73,6 +75,8 @@ src/
     └── configReader.ts            # Typed config loader and credential reader
 
 scripts/
+├── ai-usage.js                    # Runs one Claude call and records its tokens and cost
+├── auto-fix.js                    # Fixes a PR's failing tests locally with Claude, then pushes
 ├── flake-check.js                 # Reruns the suite and reports unstable scenarios
 ├── generateCucumberReport.js      # Converts cucumber-report.json to HTML
 └── pr-ci-status.js                # Writes the CI results into a pull request description

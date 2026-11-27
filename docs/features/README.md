@@ -4,7 +4,7 @@ One page per feature in this framework. Each page answers four questions:
 
 1. **Why** we added it: the problem it solves.
 2. **Purpose:** what it does and how it works, with a flowchart.
-3. **What changed** after we added it: the measurable effect, and what was not solved.
+3. **What we achieved after adding this feature:** the measurable effect, and what was not solved.
 4. **Where** the code lives.
 
 | Feature | Why it exists | Page |
