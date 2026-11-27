@@ -19,5 +19,6 @@ One page per feature in this framework. Each page answers four questions:
 | PR results table | Show the latest results in the pull request itself | [pr-results-table.md](pr-results-table.md) |
 | AI usage and cost log | Put a token and dollar cost next to each AI-assisted task | [ai-usage-log.md](ai-usage-log.md) |
 | Generated test data (Faker) | Test rules with fake, PII-safe data that can be repeated | [generated-test-data.md](generated-test-data.md) |
+| Guarded auto-fix (local) | Fix a failing PR's tests with Claude, under attempt and folder limits | [auto-fix-local.md](auto-fix-local.md) |
 
 Start with the README in the repository root for setup and commands.

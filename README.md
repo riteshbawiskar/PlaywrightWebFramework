@@ -134,6 +134,7 @@ Set `HEADLESS=true` in the environment to run without a visible browser window. 
 | `INCLUDE_KNOWN_DEFECTS=1 npx cucumber-js --tags @known-defect` | The known-defect scenario, which fails on purpose |
 | `node scripts/ai-usage.js run "<task>" "<prompt>"` | Runs one Claude Code call and records its tokens and cost in `docs/ai-usage/usage-log.csv`. See [docs/features/ai-usage-log.md](docs/features/ai-usage-log.md) |
 | `node scripts/ai-usage.js summary` | Totals for every recorded AI call |
+| `GH_TOKEN=$(gh auth token -u riteshbawiskar) node scripts/auto-fix.js <pr>` | Fixes the failing tests on a pull request with Claude, on your machine, then pushes. See [docs/features/auto-fix-local.md](docs/features/auto-fix-local.md) |
 
 Headless run, as CI does it:
 
