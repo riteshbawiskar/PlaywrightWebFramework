@@ -92,7 +92,7 @@ When('the user clicks Continue Shopping', async function (this: CustomWorld) {
 });
 
 Then('the cart badge should show {string}', async function (this: CustomWorld, text: string) {
-  await expect(this.page.locator('button[routerlink*="cart"]'), 'cart badge').toContainText(text + 'X');
+  await expect(this.page.locator('button[routerlink*="cart"]'), 'cart badge').toContainText(text);
 });
 
 Then('the cart should show {string}', async function (this: CustomWorld, text: string) {
