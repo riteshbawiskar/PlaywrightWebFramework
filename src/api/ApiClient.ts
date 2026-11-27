@@ -42,6 +42,12 @@ export class ApiClient {
     });
   }
 
+  // Sends a registration. Tests that use it must send data the server will reject
+  // (see the registration scenarios), so no real account is created.
+  async register(details: object): Promise<APIResponse> {
+    return this.request.post(`${this.baseUrl}/auth/register`, { data: details });
+  }
+
   // Logs in and returns the token. Fails here, with the status in the message, if login
   // does not succeed, instead of letting a later call fail with a misleading 401.
   async loginAndGetToken(email: string, password: string): Promise<string> {

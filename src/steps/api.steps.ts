@@ -1,10 +1,12 @@
-import { When, Then } from '@cucumber/cucumber';
+import { Given, When, Then } from '@cucumber/cucumber';
 import { expect, request as playwrightRequest } from '@playwright/test';
 import { CustomWorld } from '../support/world';
 import { ApiClient, LoginResponse, ProductsResponse } from '../api/ApiClient';
 import { validateProductsResponse } from '../api/schemas';
 import { boundaryEmailPayloads, invalidLoginPayloads } from '../api/payloads';
 import { getCredentials } from '../utils/configReader';
+import { buildRegistration, isReservedEmail, passwordOfLength, RegistrationDetails } from '../test-data/registrationData';
+import { faker } from '@faker-js/faker';
 
 // One request context per scenario. The After hook in src/support/hooks.ts disposes it.
 async function api(world: CustomWorld): Promise<ApiClient> {
@@ -94,6 +96,36 @@ When('the client logs in and requests the products with an extra body field', as
   this.apiResponse = await client.getProducts(this.apiToken, { unknown: 1 });
 });
 
+// Registration tests send generated details that the server rejects, so no account is created.
+function sendRegistration(world: CustomWorld, details: RegistrationDetails) {
+  world.registration = details;
+  return api(world).then((client) => client.register(details));
+}
+
+When('the client registers with a first name of {int} characters', async function (this: CustomWorld, length: number) {
+  const firstName = faker.string.alpha({ length, casing: 'mixed' });
+  this.apiResponse = await sendRegistration(this, buildRegistration({ firstName }));
+});
+
+When('the client registers without a first name', async function (this: CustomWorld) {
+  const details = buildRegistration();
+  delete (details as Partial<RegistrationDetails>).firstName;
+  this.apiResponse = await sendRegistration(this, details as RegistrationDetails);
+});
+
+When('the client registers with a password of {int} characters', async function (this: CustomWorld, length: number) {
+  this.apiResponse = await sendRegistration(this, buildRegistration({ userPassword: passwordOfLength(length) }));
+});
+
+Given('the client has generated registration details', async function (this: CustomWorld) {
+  this.registration = buildRegistration();
+});
+
+Then('the generated email should use a reserved example domain', async function (this: CustomWorld) {
+  expect(this.registration, 'no registration details were generated').toBeDefined();
+  expect(isReservedEmail(this.registration!.userEmail), 'generated email must use a reserved domain').toBe(true);
+});
+
 // --- Then: check the last response ---
 
 Then('the response status should be {int}', async function (this: CustomWorld, status: number) {
@@ -120,6 +152,11 @@ Then('the response should not contain a token', async function (this: CustomWorl
 Then('the response message should be {string}', async function (this: CustomWorld, message: string) {
   const body = await this.apiResponse!.json();
   expect(body.message).toBe(message);
+});
+
+Then('the response error should be {string}', async function (this: CustomWorld, message: string) {
+  const body = await this.apiResponse!.json();
+  expect(body.error, 'error message from the registration endpoint').toBe(message);
 });
 
 Then('the response should contain a valid product list', async function (this: CustomWorld) {

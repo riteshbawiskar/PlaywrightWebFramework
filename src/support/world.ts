@@ -4,6 +4,7 @@ import { LoginPage } from '../pages/LoginPage';
 import { DashboardPage } from '../pages/DashboardPage';
 import { CartPage } from '../pages/CartPage';
 import { CheckoutPage } from '../pages/CheckoutPage';
+import type { RegistrationDetails } from '../test-data/registrationData';
 
 export class CustomWorld extends World {
   browser!: Browser;
@@ -19,6 +20,8 @@ export class CustomWorld extends World {
   apiContext?: APIRequestContext;
   apiResponse?: APIResponse;
   apiToken?: string;
+  // Generated registration details for this scenario (see src/test-data/registrationData.ts).
+  registration?: RegistrationDetails;
 
   constructor(options: IWorldOptions) {
     super(options);
